@@ -1,87 +1,17 @@
 {
   "type": "magicadventurecore:sct_hybrid_crafting",
-  "blood_cost": 5000,
+  "blood_cost": 0,
   "blood_orb": {
     "item": "bloodmagic:weakbloodorb"
   },
   "ingredients": [
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    },
-    {
-      "item": "minecraft:stone"
-    }
+    {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"},
+    {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"},
+    {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"},
+    {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"},
+    {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}
   ],
-  "mana_cost": 25000,
+  "mana_cost": 0,
   "mana_mirror": {
     "item": "botania:mana_mirror"
   },

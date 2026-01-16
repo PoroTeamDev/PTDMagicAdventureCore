@@ -59,6 +59,10 @@ public class SCTHybridRecipe implements Recipe<Container> {
     public boolean canCraftInDimensions(int width, int height) {
         return width >= 5 && height >= 5;
     }
+    @Override
+    public boolean isSpecial() {
+        return true;
+    }
 
     @Override
     public ItemStack getResultItem(net.minecraft.core.RegistryAccess registryAccess) {

@@ -4,6 +4,8 @@ import com.ptdteam.magicadventurecore.registry.MACMenus;
 import com.ptdteam.magicadventurecore.registry.MACRecipeTypes;
 import com.ptdteam.magicadventurecore.world.block.entity.SCTBlockEntity;
 import com.ptdteam.magicadventurecore.world.recipe.SCTHybridRecipe;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
@@ -22,7 +24,9 @@ import wayoftime.bloodmagic.common.item.IBloodOrb;
 import wayoftime.bloodmagic.core.data.Binding;
 import wayoftime.bloodmagic.core.data.SoulNetwork;
 import wayoftime.bloodmagic.util.helper.NetworkHelper;
+import vazkii.botania.api.mana.ManaPool;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
@@ -126,7 +130,7 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         Optional<SCTHybridRecipe> recipe = recipeManager.getRecipeFor(MACRecipeTypes.MAC_HYBRID_TYPE.get(), inputContainer, blockEntity.getLevel());
         lastRecipe = recipe;
         ItemStack result = ItemStack.EMPTY;
-        if (recipe.isPresent() && hasEnoughResources(recipe.get())) {
+        if (recipe.isPresent()) {
             result = recipe.get().assemble(inputContainer, blockEntity.getLevel().registryAccess());
         }
         handler.setStackInSlot(OUTPUT_SLOT, result);
@@ -186,6 +190,11 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         }
 
         @Override
+        public boolean mayPickup(Player player) {
+            return lastRecipe.isPresent() && hasEnoughResources(lastRecipe.get());
+        }
+
+        @Override
         public void onTake(Player player, ItemStack stack) {
             super.onTake(player, stack);
             consumeIngredients();
@@ -199,7 +208,7 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
                 return;
             }
             List<net.minecraft.world.item.crafting.Ingredient> ingredients = recipe.getIngredients();
-            for (int slot = 0; slot < INPUT_SLOTS + 2; slot++) {
+            for (int slot = 0; slot < INPUT_SLOTS; slot++) {
                 if (slot >= ingredients.size()) {
                     continue;
                 }
@@ -278,6 +287,10 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         if (stack.isEmpty()) {
             return false;
         }
+        ManaPool pool = resolveBoundManaPool(stack, blockEntity.getLevel());
+        if (pool != null) {
+            return pool.getCurrentMana() >= cost;
+        }
         return ManaItemHandler.instance().requestManaExact(stack, player, cost, false);
     }
 
@@ -307,9 +320,55 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         if (!stack.isEmpty()) {
             ManaItemHandler.instance().requestManaExact(stack, player, cost, true);
         }
-
+        ManaPool pool = resolveBoundManaPool(stack, blockEntity.getLevel());
+        if (pool != null) {
+            pool.receiveMana(-cost);
+            return;
+        }
+    }
+    @Nullable
+    private ManaPool resolveBoundManaPool(ItemStack mirror, @Nullable Level level) {
+        if (level == null) {
+            return null;
+        }
+        CompoundTag tag = mirror.getTag();
+        if (tag == null) {
+            return null;
+        }
+        Optional<BlockPos> pos = extractBoundPos(tag);
+        if (pos.isEmpty()) {
+            return null;
+        }
+        if (level.getBlockEntity(pos.get()) instanceof ManaPool pool) {
+            return pool;
+        }
+        return null;
     }
 
+    private Optional<BlockPos> extractBoundPos(CompoundTag tag) {
+        if (tag.contains("pos", net.minecraft.nbt.Tag.TAG_INT_ARRAY)) {
+            int[] coords = tag.getIntArray("pos");
+            if (coords.length >= 3) {
+                return Optional.of(new BlockPos(coords[0], coords[1], coords[2]));
+            }
+        }
+        if (tag.contains("pos", net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+            CompoundTag posTag = tag.getCompound("pos");
+            if (posTag.contains("x") && posTag.contains("y") && posTag.contains("z")) {
+                return Optional.of(new BlockPos(posTag.getInt("x"), posTag.getInt("y"), posTag.getInt("z")));
+            }
+        }
+        if (tag.contains("x") && tag.contains("y") && tag.contains("z")) {
+            return Optional.of(new BlockPos(tag.getInt("x"), tag.getInt("y"), tag.getInt("z")));
+        }
+        if (tag.contains("posX") && tag.contains("posY") && tag.contains("posZ")) {
+            return Optional.of(new BlockPos(tag.getInt("posX"), tag.getInt("posY"), tag.getInt("posZ")));
+        }
+        if (tag.contains("boundX") && tag.contains("boundY") && tag.contains("boundZ")) {
+            return Optional.of(new BlockPos(tag.getInt("boundX"), tag.getInt("boundY"), tag.getInt("boundZ")));
+        }
+        return Optional.empty();
+    }
     private static int getBloodFillPercentage(ItemStack stack) {
         if (stack.isEmpty() || !(stack.getItem() instanceof IBloodOrb)) {
             return 0;
