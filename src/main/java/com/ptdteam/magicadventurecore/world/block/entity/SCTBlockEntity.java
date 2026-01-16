@@ -41,7 +41,7 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider {
 
     @Override
     public Component getDisplayName() {
-        return Component.translatable("container.magicadventurecore.mac_crafting");
+        return Component.translatable("container.magicadventurecore.sct_crafting");
     }
 
     @Nullable

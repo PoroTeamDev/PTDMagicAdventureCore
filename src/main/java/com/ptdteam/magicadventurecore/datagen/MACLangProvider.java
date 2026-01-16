@@ -13,6 +13,6 @@ public class MACLangProvider extends LanguageProvider {
     @Override
     protected void addTranslations() {
         add(MACBlocks.SCT.get(), "Synergetic Crafting Table");
-        add("container.magicadventurecore.mac_crafting", "Synergetic Crafting");
+        add("container.magicadventurecore.sct_crafting", "Synergetic Crafting");
     }
 }

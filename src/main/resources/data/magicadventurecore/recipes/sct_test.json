@@ -2,7 +2,7 @@
   "type": "magicadventurecore:sct_hybrid_crafting",
   "blood_cost": 5000,
   "blood_orb": {
-    "item": "minecraft:redstone"
+    "item": "bloodmagic:weakbloodorb"
   },
   "ingredients": [
     {
@@ -83,7 +83,7 @@
   ],
   "mana_cost": 25000,
   "mana_mirror": {
-    "item": "minecraft:lapis_lazuli"
+    "item": "botania:mana_mirror"
   },
   "result": {
     "item": "minecraft:diamond"

@@ -111,6 +111,14 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         }
         updateRecipeOutput();
     }
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        Level level = blockEntity.getLevel();
+        if (level != null && !level.isClientSide) {
+            updateRecipeOutput();
+        }
+    }
 
     private void updateRecipeOutput() {
         ItemStackHandler handler = blockEntity.getInventory();
