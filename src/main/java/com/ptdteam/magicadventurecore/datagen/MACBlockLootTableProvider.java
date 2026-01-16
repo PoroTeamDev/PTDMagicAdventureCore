@@ -1,5 +1,7 @@
 package com.ptdteam.magicadventurecore.datagen;
 
+import com.ptdteam.magicadventurecore.registry.MACBlocks;
+
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.loot.BlockLootSubProvider;
 import net.minecraft.data.loot.LootTableProvider;
@@ -10,8 +12,8 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import java.util.List;
 import java.util.Set;
 
-public class ModBlockLootTableProvider extends LootTableProvider {
-    public ModBlockLootTableProvider(PackOutput output) {
+public class MACBlockLootTableProvider extends LootTableProvider {
+    public MACBlockLootTableProvider(PackOutput output) {
         super(output, Set.of(), List.of(new SubProviderEntry(ModBlockLootSubProvider::new, LootContextParamSets.BLOCK)));
     }
 
@@ -22,11 +24,14 @@ public class ModBlockLootTableProvider extends LootTableProvider {
 
         @Override
         protected void generate() {
+            dropSelf(MACBlocks.SCT.get());
         }
 
         @Override
         protected Iterable<Block> getKnownBlocks() {
-            return List.of();
+
+            return List.of(MACBlocks.SCT.get());
+
         }
     }
 }

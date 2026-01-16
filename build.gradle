@@ -148,10 +148,15 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:curios-309927:6418456")
     runtimeOnly fg.deobf("curse.maven:lionfish-api-1001614:5922047")
 
+
     if (githubPackagesUser && githubPackagesToken) {
         runtimeOnly fg.deobf("org.cyclops.evilcraftcompat:EvilCraftCompat:1.1.0")
     }
-    else return("Error")
+    compileOnly fg.deobf("curse.maven:blood-magic-224791:7253333")
+    compileOnly fg.deobf("curse.maven:botania-225643:6870713")
+    compileOnly fg.deobf("maven.modrinth:divinerpg:iPO1zRlr")
+    compileOnly fg.deobf("curse.maven:evilcraft-74610:7223463")
+    compileOnly fg.deobf("maven.modrinth:l_enders-cataclysm:NvvXful4")
 
     implementation fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}")
     implementation fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}")

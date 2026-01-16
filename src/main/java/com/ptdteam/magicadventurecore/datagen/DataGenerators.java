@@ -19,16 +19,17 @@ public final class DataGenerators {
         PackOutput output = generator.getPackOutput();
         ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
 
-        generator.addProvider(event.includeClient(), new ModBlockStateProvider(output, existingFileHelper));
-        generator.addProvider(event.includeClient(), new ModItemModelProvider(output, existingFileHelper));
-        ModBlockTagProvider blockTagProvider =
-                new ModBlockTagProvider(output, event.getLookupProvider(), existingFileHelper);
+        generator.addProvider(event.includeClient(), new MACBlockStateProvider(output, existingFileHelper));
+        generator.addProvider(event.includeClient(), new MACItemModelProvider(output, existingFileHelper));
+        generator.addProvider(event.includeClient(), new MACLangProvider(output));
+        MACBlockTagProvider blockTagProvider =
+                new MACBlockTagProvider(output, event.getLookupProvider(), existingFileHelper);
         generator.addProvider(event.includeServer(), blockTagProvider);
         generator.addProvider(
                 event.includeServer(),
-                new ModItemTagProvider(output, event.getLookupProvider(), blockTagProvider.contentsGetter(), existingFileHelper)
+                new MACItemTagProvider(output, event.getLookupProvider(), blockTagProvider.contentsGetter(), existingFileHelper)
         );
-        generator.addProvider(event.includeServer(), new ModRecipeProvider(output));
-        generator.addProvider(event.includeServer(), new ModBlockLootTableProvider(output));
+        generator.addProvider(event.includeServer(), new MACRecipeProvider(output));
+        generator.addProvider(event.includeServer(), new MACBlockLootTableProvider(output));
     }
 }
