@@ -22,21 +22,18 @@ public class SCTJeiCategory implements IRecipeCategory<SCTHybridRecipe> {
     public static final RecipeType<SCTHybridRecipe> TYPE =
             RecipeType.create(MagicAdventureCore.MOD_ID, "sct_hybrid_crafting", SCTHybridRecipe.class);
 
-    private static final int GRID_START_X = 8;
-    private static final int GRID_START_Y = 4;
-    private static final int SLOT_SIZE = 18;
-    private static final int BLOOD_SLOT_X = 116;
-    private static final int BLOOD_SLOT_Y = 12;
-    private static final int MANA_SLOT_X = 116;
-    private static final int MANA_SLOT_Y = 48;
-    private static final int OUTPUT_SLOT_X = 164;
-    private static final int OUTPUT_SLOT_Y = 30;
+    private static final int BLOOD_SLOT_X = SCTCraftingMenu.BLOOD_SLOT_X;
+    private static final int BLOOD_SLOT_Y = SCTCraftingMenu.BLOOD_SLOT_Y;
+    private static final int MANA_SLOT_X = SCTCraftingMenu.MANA_SLOT_X;
+    private static final int MANA_SLOT_Y = SCTCraftingMenu.MANA_SLOT_Y;
+    private static final int OUTPUT_SLOT_X = SCTCraftingMenu.OUTPUT_SLOT_X;
+    private static final int OUTPUT_SLOT_Y = SCTCraftingMenu.OUTPUT_SLOT_Y;
 
     private final IDrawable background;
     private final IDrawable icon;
 
     public SCTJeiCategory(IGuiHelper guiHelper) {
-        this.background = guiHelper.createBlankDrawable(200, 110);
+        this.background = guiHelper.createBlankDrawable(176, 166);
         this.icon = guiHelper.createDrawableItemStack(new ItemStack(MACItems.SCT.get()));
     }
 
@@ -50,10 +47,6 @@ public class SCTJeiCategory implements IRecipeCategory<SCTHybridRecipe> {
         return Component.translatable("container.magicadventurecore.sct_crafting");
     }
 
-    @Override
-    public IDrawable getBackground() {
-        return background;
-    }
 
     @Override
     public IDrawable getIcon() {
@@ -63,21 +56,20 @@ public class SCTJeiCategory implements IRecipeCategory<SCTHybridRecipe> {
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, SCTHybridRecipe recipe, IFocusGroup focuses) {
         List<Ingredient> ingredients = recipe.getIngredients();
-        for (int row = 0; row < SCTCraftingMenu.GRID_ROWS; row++) {
-            for (int col = 0; col < SCTCraftingMenu.GRID_COLUMNS; col++) {
-                int index = row * SCTCraftingMenu.GRID_COLUMNS + col;
-                Ingredient ingredient = ingredients.size() > index ? ingredients.get(index) : Ingredient.EMPTY;
-                builder.addSlot(RecipeIngredientRole.INPUT, GRID_START_X + col * SLOT_SIZE, GRID_START_Y + row * SLOT_SIZE)
-                        .addIngredients(ingredient);
-            }
+        for (int index = 0; index < SCTCraftingMenu.INPUT_SLOTS; index++) {
+            Ingredient ingredient = ingredients.size() > index ? ingredients.get(index) : Ingredient.EMPTY;
+            int x = SCTCraftingMenu.INPUT_SLOT_POSITIONS[index][0];
+            int y = SCTCraftingMenu.INPUT_SLOT_POSITIONS[index][1];
+            builder.addSlot(RecipeIngredientRole.INPUT, x, y)
+                    .addIngredients(ingredient);
         }
-        if (ingredients.size() > SCTCraftingMenu.BLOOD_SLOT) {
+        if (!recipe.getBloodOrbIngredient().isEmpty()) {
             builder.addSlot(RecipeIngredientRole.INPUT, BLOOD_SLOT_X, BLOOD_SLOT_Y)
-                    .addIngredients(ingredients.get(SCTCraftingMenu.BLOOD_SLOT));
+                    .addIngredients(recipe.getBloodOrbIngredient());
         }
-        if (ingredients.size() > SCTCraftingMenu.MANA_SLOT) {
+        if (!recipe.getManaMirrorIngredient().isEmpty()) {
             builder.addSlot(RecipeIngredientRole.INPUT, MANA_SLOT_X, MANA_SLOT_Y)
-                    .addIngredients(ingredients.get(SCTCraftingMenu.MANA_SLOT));
+                    .addIngredients(recipe.getManaMirrorIngredient());
         }
 
         ItemStack result = recipe.getResultItem(RegistryAccess.EMPTY);

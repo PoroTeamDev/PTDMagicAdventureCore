@@ -18,22 +18,18 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
     public SCTHybridRecipe fromJson(ResourceLocation id, JsonObject json) {
         JsonArray ingredientsJson = GsonHelper.getAsJsonArray(json, "ingredients");
         if (ingredientsJson.size() != SCTCraftingMenu.INPUT_SLOTS) {
-            throw new IllegalArgumentException("SCT hybrid recipe requires exactly 25 ingredients");
+            throw new IllegalArgumentException("SCT hybrid recipe requires exactly 14 ingredients");
         }
         int bloodCost = GsonHelper.getAsInt(json, "blood_cost", 0);
         int manaCost = GsonHelper.getAsInt(json, "mana_cost", 0);
-        NonNullList<Ingredient> ingredients = NonNullList.withSize(SCTCraftingMenu.INPUT_SLOTS + 2, Ingredient.EMPTY);
+        NonNullList<Ingredient> ingredients = NonNullList.withSize(SCTCraftingMenu.INPUT_SLOTS, Ingredient.EMPTY);
         for (int i = 0; i < ingredientsJson.size(); i++) {
             ingredients.set(i, Ingredient.fromJson(ingredientsJson.get(i)));
         }
-        if (json.has("blood_orb")) {
-            ingredients.set(SCTCraftingMenu.BLOOD_SLOT, Ingredient.fromJson(json.get("blood_orb")));
-        }
-        if (json.has("mana_mirror")) {
-            ingredients.set(SCTCraftingMenu.MANA_SLOT, Ingredient.fromJson(json.get("mana_mirror")));
-        }
+        Ingredient bloodOrb = json.has("blood_orb") ? Ingredient.fromJson(json.get("blood_orb")) : Ingredient.EMPTY;
+        Ingredient manaMirror = json.has("mana_mirror") ? Ingredient.fromJson(json.get("mana_mirror")) : Ingredient.EMPTY;
         ItemStack result = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
-        return new SCTHybridRecipe(id, ingredients, result, bloodCost, manaCost);
+        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost);
     }
 
     @Nullable
@@ -46,8 +42,10 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         for (int i = 0; i < size; i++) {
             ingredients.set(i, Ingredient.fromNetwork(buffer));
         }
+        Ingredient bloodOrb = Ingredient.fromNetwork(buffer);
+        Ingredient manaMirror = Ingredient.fromNetwork(buffer);
         ItemStack result = buffer.readItem();
-        return new SCTHybridRecipe(id, ingredients, result, bloodCost, manaCost);
+        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost);
     }
 
     @Override
@@ -58,6 +56,8 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         for (Ingredient ingredient : recipe.getIngredients()) {
             ingredient.toNetwork(buffer);
         }
+        recipe.getBloodOrbIngredient().toNetwork(buffer);
+        recipe.getManaMirrorIngredient().toNetwork(buffer);
         buffer.writeItem(recipe.getResultItem(net.minecraft.core.RegistryAccess.EMPTY));
     }
 }

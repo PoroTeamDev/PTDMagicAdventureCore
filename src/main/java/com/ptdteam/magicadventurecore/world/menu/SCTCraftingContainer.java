@@ -14,7 +14,7 @@ public class SCTCraftingContainer implements Container {
 
     @Override
     public int getContainerSize() {
-        return SCTCraftingMenu.INPUT_SLOTS + 2;
+        return SCTCraftingMenu.INPUT_SLOTS;
     }
 
     @Override

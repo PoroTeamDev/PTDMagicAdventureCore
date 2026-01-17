@@ -31,12 +31,35 @@ import java.util.List;
 import java.util.Optional;
 
 public class SCTCraftingMenu extends AbstractContainerMenu {
-    public static final int GRID_ROWS = 5;
-    public static final int GRID_COLUMNS = 5;
-    public static final int INPUT_SLOTS = GRID_ROWS * GRID_COLUMNS;
-    public static final int BLOOD_SLOT = 25;
-    public static final int MANA_SLOT = 26;
-    public static final int OUTPUT_SLOT = 27;
+    public static final int INPUT_SLOTS = 14;
+    public static final int BLOOD_SLOT = 14;
+    public static final int MANA_SLOT = 15;
+    public static final int OUTPUT_SLOT = 16;
+    public static final int SLOT_SIZE = 18;
+    //public static final int CENTER_X = 115;
+    //public static final int CENTER_Y = 100;
+    public static final int[][] INPUT_SLOT_POSITIONS = {
+            {89, 25},
+            {111, 32},
+            {131, 44},
+            {140, 65},
+            {140, 87},
+            {131, 108},
+            {111, 121},
+            {89, 125},
+            {67, 121},
+            {47, 108},
+            {37, 87},
+            {37, 65},
+            {47, 44},
+            {67, 32}
+    };
+    public static final int BLOOD_SLOT_X = 11;
+    public static final int BLOOD_SLOT_Y = 77;
+    public static final int MANA_SLOT_X = 167;
+    public static final int MANA_SLOT_Y = 77;
+    public static final int OUTPUT_SLOT_X = 89;
+    public static final int OUTPUT_SLOT_Y = 76;
 
     private final SCTBlockEntity blockEntity;
     private final ContainerLevelAccess access;
@@ -72,28 +95,31 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
     }
 
     private void addCraftingSlots(ItemStackHandler handler) {
-        int startX = 8;
-        int startY = 18;
-        int slotSize = 18;
-
-        for (int row = 0; row < GRID_ROWS; row++) {
-            for (int col = 0; col < GRID_COLUMNS; col++) {
-                int index = row * GRID_COLUMNS + col;
-                int x = startX + col * slotSize;
-                int y = startY + row * slotSize;
-                addSlot(new SlotItemHandler(handler, index, x, y));
-            }
+        for (int index = 0; index < INPUT_SLOTS; index++) {
+            int x = INPUT_SLOT_POSITIONS[index][0];
+            int y = INPUT_SLOT_POSITIONS[index][1];
+            addSlot(new SlotItemHandler(handler, index, x, y));
         }
 
-        addSlot(new SlotItemHandler(handler, BLOOD_SLOT, 116, 26));
-        addSlot(new SlotItemHandler(handler, MANA_SLOT, 116, 62));
-        addSlot(new SCTCraftingResultSlot(handler, OUTPUT_SLOT, 164, 44));
+        addSlot(new SlotItemHandler(handler, BLOOD_SLOT, BLOOD_SLOT_X, BLOOD_SLOT_Y) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return isBloodItem(stack);
+            }
+        });
+        addSlot(new SlotItemHandler(handler, MANA_SLOT, MANA_SLOT_X, MANA_SLOT_Y) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return isManaItem(stack);
+            }
+        });
+        addSlot(new SCTCraftingResultSlot(handler, OUTPUT_SLOT, OUTPUT_SLOT_X, OUTPUT_SLOT_Y));
     }
 
     private void addPlayerInventory(Inventory inventory) {
-        int startX = 8;
-        int startY = 142;
-        int slotSize = 18;
+        int startX = 9;
+        int startY = 167;
+        int slotSize = 20;
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
@@ -101,7 +127,7 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
             }
         }
 
-        int hotbarY = 200;
+        int hotbarY = 231;
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(inventory, col, startX + col * slotSize, hotbarY));
         }
@@ -207,16 +233,20 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
             if (!hasEnoughResources(recipe)) {
                 return;
             }
-            List<net.minecraft.world.item.crafting.Ingredient> ingredients = recipe.getIngredients();
+            List<net.minecraft.world.item.crafting.Ingredient> remaining = recipe.getIngredients().stream()
+                    .filter(ingredient -> !ingredient.isEmpty())
+                    .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
             for (int slot = 0; slot < INPUT_SLOTS; slot++) {
-                if (slot >= ingredients.size()) {
+                ItemStack inSlot = handler.getStackInSlot(slot);
+                if (inSlot.isEmpty()) {
                     continue;
                 }
-                if (!ingredients.get(slot).isEmpty()) {
-                    ItemStack inSlot = handler.getStackInSlot(slot);
-                    if (!inSlot.isEmpty()) {
+                for (int i = 0; i < remaining.size(); i++) {
+                    if (remaining.get(i).test(inSlot)) {
                         inSlot.shrink(1);
                         handler.setStackInSlot(slot, inSlot);
+                        remaining.remove(i);
+                        break;
                     }
                 }
             }
@@ -377,6 +407,7 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         if (binding == null || binding.getOwnerId() == null) {
             return 0;
         }
+
         SoulNetwork network = NetworkHelper.getSoulNetwork(binding);
         if (network == null) {
             return 0;
@@ -422,5 +453,20 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         }
         return 100;
 
+    }
+
+    private static boolean isBloodItem(ItemStack stack) {
+        return !stack.isEmpty() && stack.getItem() instanceof IBloodOrb;
+    }
+
+    private static boolean isManaItem(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+        return ManaItemHandler.instance().requestManaExact(stack, null, 1, false);
+    }
+
+    private static int[][] buildInputPositions() {
+        return INPUT_SLOT_POSITIONS;
     }
 }

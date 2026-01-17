@@ -9,26 +9,28 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
-public class SCTScreen extends AbstractContainerScreen<SCTCraftingMenu> {
-    private static final ResourceLocation TEXTURE =
-            new ResourceLocation(MagicAdventureCore.MOD_ID, "textures/gui/mac_crafting.png");
+import static net.minecraftforge.client.settings.KeyConflictContext.GUI;
 
-    public SCTScreen(SCTCraftingMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title);
-        this.imageWidth = 230;
-        this.imageHeight = 232;
+public class SCTScreen extends AbstractContainerScreen<SCTCraftingMenu> {
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(MagicAdventureCore.MOD_ID, "textures/gui/sct_gui.png");
+
+    public SCTScreen(SCTCraftingMenu menu, Inventory inv, Component title) {
+        super(menu, inv, title);
+        this.imageWidth = 194;
+        this.imageHeight = 255;
     }
+
 
     @Override
     protected void init() {
         super.init();
-        this.inventoryLabelY = this.imageHeight - 94;
+        this.inventoryLabelY = this.imageHeight - 100;
     }
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        graphics.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight);
+        graphics.blit(TEXTURE, leftPos, topPos, 0, 0, 194, 255, 194, 255);
 
         int bloodFill = menu.getBloodFill();
         int manaFill = menu.getManaFill();

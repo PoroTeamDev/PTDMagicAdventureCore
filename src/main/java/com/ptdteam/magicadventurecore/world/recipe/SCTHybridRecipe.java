@@ -12,16 +12,22 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 
+import java.util.List;
+
 public class SCTHybridRecipe implements Recipe<Container> {
     private final ResourceLocation id;
     private final NonNullList<Ingredient> ingredients;
     private final ItemStack result;
+    private final Ingredient bloodOrbIngredient;
+    private final Ingredient manaMirrorIngredient;
     private final int bloodCost;
     private final int manaCost;
 
     public SCTHybridRecipe(
             ResourceLocation id,
             NonNullList<Ingredient> ingredients,
+            Ingredient bloodOrbIngredient,
+            Ingredient manaMirrorIngredient,
             ItemStack result,
             int bloodCost,
             int manaCost
@@ -29,25 +35,42 @@ public class SCTHybridRecipe implements Recipe<Container> {
         this.id = id;
         this.ingredients = ingredients;
         this.result = result;
+        this.bloodOrbIngredient = bloodOrbIngredient;
+        this.manaMirrorIngredient = manaMirrorIngredient;
         this.bloodCost = bloodCost;
         this.manaCost = manaCost;
     }
 
     @Override
     public boolean matches(Container container, Level level) {
-        for (int slot = 0; slot < SCTCraftingMenu.INPUT_SLOTS + 2; slot++) {
-            if (slot >= ingredients.size()) {
-                return false;
+        List<Ingredient> required = ingredients.stream()
+                .filter(ingredient -> !ingredient.isEmpty())
+                .toList();
+        List<ItemStack> inputs = new java.util.ArrayList<>();
+        for (int slot = 0; slot < SCTCraftingMenu.INPUT_SLOTS; slot++) {
+            ItemStack stack = container.getItem(slot);
+            if (!stack.isEmpty()) {
+                inputs.add(stack);
             }
-            Ingredient ingredient = ingredients.get(slot);
-            if (!ingredient.isEmpty() && !ingredient.test(container.getItem(slot))) {
-                return false;
+        }
+        if (inputs.size() != required.size()) {
+            return false;
+        }
+        List<ItemStack> remaining = new java.util.ArrayList<>(inputs);
+        for (Ingredient ingredient : required) {
+            boolean matched = false;
+            for (int i = 0; i < remaining.size(); i++) {
+                if (ingredient.test(remaining.get(i))) {
+                    remaining.remove(i);
+                    matched = true;
+                    break;
+                }
             }
-            if (ingredient.isEmpty() && !container.getItem(slot).isEmpty()) {
+            if (!matched) {
                 return false;
             }
         }
-        return true;
+        return remaining.isEmpty();
     }
 
     @Override
@@ -57,8 +80,9 @@ public class SCTHybridRecipe implements Recipe<Container> {
 
     @Override
     public boolean canCraftInDimensions(int width, int height) {
-        return width >= 5 && height >= 5;
+        return width * height >= SCTCraftingMenu.INPUT_SLOTS;
     }
+
     @Override
     public boolean isSpecial() {
         return true;
@@ -75,6 +99,14 @@ public class SCTHybridRecipe implements Recipe<Container> {
 
     public int getManaCost() {
         return manaCost;
+    }
+
+    public Ingredient getBloodOrbIngredient() {
+        return bloodOrbIngredient;
+    }
+
+    public Ingredient getManaMirrorIngredient() {
+        return manaMirrorIngredient;
     }
 
     @Override

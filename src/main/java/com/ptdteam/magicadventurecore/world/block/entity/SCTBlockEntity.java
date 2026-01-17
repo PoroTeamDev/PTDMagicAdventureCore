@@ -18,10 +18,10 @@ import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
 public class SCTBlockEntity extends BlockEntity implements MenuProvider {
-    public static final int GRID_SIZE = 25;
+    public static final int GRID_SIZE = 14;
     public static final int EXTRA_SLOTS = 2;
-    public static final int OUTPUT_SLOT = 27;
-    public static final int TOTAL_SLOTS = 28;
+    public static final int OUTPUT_SLOT = 16;
+    public static final int TOTAL_SLOTS = 17;
 
     private final ItemStackHandler inventory = new ItemStackHandler(TOTAL_SLOTS) {
         @Override

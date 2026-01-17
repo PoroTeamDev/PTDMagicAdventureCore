@@ -1,0 +1,106 @@
+ServerEvents.recipes(event => {
+  const sctType = 'magicadventurecore:sct_hybrid_crafting';
+
+  const toIngredientJson = item => Ingredient.of(item).toJson();
+  const toResultJson = item => Item.of(item).toJson();
+  const toIngredients = items => {
+  const list = items.map(toIngredientJson);
+  while (list.length < 14) {
+  list.push({});
+}
+return list;
+};
+
+  const sctRecipe = (output, ingredients, bloodCost, manaCost) => {
+    event.custom({
+      type: sctType,
+      ingredients: toIngredients(ingredients),
+      blood_cost: bloodCost,
+      mana_cost: manaCost,
+      blood_orb: toIngredientJson('bloodmagic:weakbloodorb'),
+      mana_mirror: toIngredientJson('botania:mana_mirror'),
+      result: toResultJson(output)
+    });
+  };
+
+event.shaped('magicadventurecore:sct_crafting_block', [
+'ABA',
+'CDC',
+'EFE'
+], {
+A: 'botania:mana_diamond',
+B: 'bloodmagic:infusedslate',
+C: 'botania:mana_pearl',
+D: 'minecraft:crafting_table',
+E: 'bloodmagic:weakbloodorb',
+F: 'botania:mana_mirror'
+});
+
+sctRecipe('divinerpg:awakened_halite_helmet', [
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'botania:mana_diamond',
+'bloodmagic:reinforcedslate',
+'botania:terrasteel_ingot',
+'bloodmagic:infusedslate',
+'botania:mana_pearl',
+'botania:mana_diamond',
+'bloodmagic:demonslate',
+'botania:gaia_ingot',
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'botania:mana_diamond'
+], 12000, 45000);
+
+sctRecipe('divinerpg:awakened_halite_chestplate', [
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'botania:gaia_ingot',
+'bloodmagic:demonslate',
+'botania:terrasteel_ingot',
+'bloodmagic:reinforcedslate',
+'botania:mana_diamond',
+'botania:mana_pearl',
+'bloodmagic:infusedslate',
+'botania:gaia_ingot',
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'botania:mana_diamond'
+], 20000, 80000);
+
+sctRecipe('divinerpg:awakened_halite_leggings', [
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'bloodmagic:demonslate',
+'botania:mana_diamond',
+'botania:terrasteel_ingot',
+'bloodmagic:reinforcedslate',
+'botania:mana_pearl',
+'botania:mana_diamond',
+'bloodmagic:infusedslate',
+'botania:gaia_ingot',
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'botania:mana_diamond'
+], 18000, 70000);
+
+sctRecipe('divinerpg:awakened_halite_boots', [
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'bloodmagic:infusedslate',
+'botania:mana_diamond',
+'botania:terrasteel_ingot',
+'bloodmagic:reinforcedslate',
+'botania:mana_pearl',
+'botania:mana_diamond',
+'bloodmagic:demonslate',
+'botania:gaia_ingot',
+'divinerpg:awakened_halite_ingot',
+'divinerpg:awakened_halite_ingot',
+'botania:mana_diamond'
+], 15000, 60000);
+});

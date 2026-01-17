@@ -15,9 +15,11 @@ public class MACBlockStateProvider extends BlockStateProvider {
     protected void registerStatesAndModels() {
         simpleBlockWithItem(
                 MACBlocks.SCT.get(),
-                models().cubeAll(
+                models().cubeBottomTop(
                         MACBlocks.SCT.getId().getPath(),
-                        new net.minecraft.resources.ResourceLocation("minecraft", "block/iron_block")
+                        modLoc("block/sct_crafting_side"),
+                        modLoc("block/sct_crafting_bottom"),
+                        modLoc("block/sct_crafting_top")
                 )
         );
     }

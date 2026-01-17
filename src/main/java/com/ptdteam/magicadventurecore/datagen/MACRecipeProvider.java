@@ -22,22 +22,21 @@ public class MACRecipeProvider extends RecipeProvider {
 
     @Override
     protected void buildRecipes(Consumer<FinishedRecipe> consumer) {
-        Item bloodOrbItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation("bloodmagic", "weakbloodord"));
-        Item ManaMirrorItem = ForgeRegistries.ITEMS.getValue(new ResourceLocation("botania", "mana_mirror"));
+        Item bloodOrbItem = ForgeRegistries.ITEMS.getValue(ResourceLocation.fromNamespaceAndPath("bloodmagic", "weakbloodorb"));
+        Item manaMirrorItem = ForgeRegistries.ITEMS.getValue(ResourceLocation.fromNamespaceAndPath("botania", "mana_mirror"));
         Ingredient bloodOrb = bloodOrbItem == null ? Ingredient.EMPTY : Ingredient.of(bloodOrbItem);
-        Ingredient manaMrirror = ManaMirrorItem == null ? Ingredient.EMPTY : Ingredient.of(ManaMirrorItem);
+        Ingredient manaMirror = manaMirrorItem == null ? Ingredient.EMPTY : Ingredient.of(manaMirrorItem);
         List<Ingredient> ingredients = List.of(
-                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE),
-                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE),
-                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE),
-                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE),
-                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE)
+                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE),
+                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE),
+                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE),
+                Ingredient.of(Items.STONE), Ingredient.of(Items.STONE)
         );
         SCTRecipeBuilder recipe = new SCTRecipeBuilder(
-                new ResourceLocation(MagicAdventureCore.MOD_ID, "sct_test"),
+                ResourceLocation.fromNamespaceAndPath(MagicAdventureCore.MOD_ID, "sct_test"),
                 ingredients,
                 Optional.of(bloodOrb),
-                Optional.of(manaMrirror),
+                Optional.of(manaMirror),
                 new ItemStack(Items.DIAMOND),
                 5000,
                 25000
