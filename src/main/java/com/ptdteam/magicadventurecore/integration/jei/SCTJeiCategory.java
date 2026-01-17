@@ -13,6 +13,7 @@ import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 
@@ -33,10 +34,13 @@ public class SCTJeiCategory implements IRecipeCategory<SCTHybridRecipe> {
     private final IDrawable icon;
 
     public SCTJeiCategory(IGuiHelper guiHelper) {
-        this.background = guiHelper.createBlankDrawable(176, 166);
+        this.background = guiHelper.createBlankDrawable(190, 140);
         this.icon = guiHelper.createDrawableItemStack(new ItemStack(MACItems.SCT.get()));
     }
-
+    @Override
+    public IDrawable getBackground() {
+        return background;
+    }
     @Override
     public RecipeType<SCTHybridRecipe> getRecipeType() {
         return TYPE;

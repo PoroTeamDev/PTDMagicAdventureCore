@@ -110,7 +110,7 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         addSlot(new SlotItemHandler(handler, MANA_SLOT, MANA_SLOT_X, MANA_SLOT_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return isManaItem(stack);
+                return isManaItem(stack, player);
             }
         });
         addSlot(new SCTCraftingResultSlot(handler, OUTPUT_SLOT, OUTPUT_SLOT_X, OUTPUT_SLOT_Y));
@@ -459,11 +459,9 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         return !stack.isEmpty() && stack.getItem() instanceof IBloodOrb;
     }
 
-    private static boolean isManaItem(ItemStack stack) {
-        if (stack.isEmpty()) {
-            return false;
-        }
-        return ManaItemHandler.instance().requestManaExact(stack, null, 1, false);
+    private static boolean isManaItem(ItemStack stack, Player player) {
+        if (stack.isEmpty()) return false;
+        return ManaItemHandler.instance().requestManaExact(stack, player, 0, false);
     }
 
     private static int[][] buildInputPositions() {
