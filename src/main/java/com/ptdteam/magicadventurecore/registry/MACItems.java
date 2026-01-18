@@ -1,6 +1,7 @@
 package com.ptdteam.magicadventurecore.registry;
 
 import com.ptdteam.magicadventurecore.MagicAdventureCore;
+import com.ptdteam.magicadventurecore.world.item.ERItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
@@ -14,6 +15,11 @@ public final class MACItems {
     public static final RegistryObject<Item> SCT = ITEMS.register(
             "sct",
             () -> new BlockItem(MACBlocks.SCT.get(), new Item.Properties())
+    );
+
+    public static final RegistryObject<Item> ESSENCE_RESERVOIR = ITEMS.register(
+            "essence_reservoir",
+            () -> new ERItem(new Item.Properties())
     );
 
     private MACItems() {

@@ -1,6 +1,7 @@
 package com.ptdteam.magicadventurecore.registry;
 
 import com.ptdteam.magicadventurecore.MagicAdventureCore;
+import com.ptdteam.magicadventurecore.world.block.ERBlock;
 import com.ptdteam.magicadventurecore.world.block.SCTBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -16,6 +17,10 @@ public final class MACBlocks {
     public static final RegistryObject<Block> SCT = BLOCKS.register(
             "sct_crafting_block",
             () -> new SCTBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.5F))
+    );
+    public static final RegistryObject<Block> ESSENCE_RESERVOIR = BLOCKS.register(
+            "essence_reservoir",
+            () -> new ERBlock(BlockBehaviour.Properties.of().strength(3.5F).noOcclusion())
     );
 
     private MACBlocks() {

@@ -1,6 +1,7 @@
 package com.ptdteam.magicadventurecore.registry;
 
 import com.ptdteam.magicadventurecore.MagicAdventureCore;
+import com.ptdteam.magicadventurecore.world.block.entity.ERBlockEntity;
 import com.ptdteam.magicadventurecore.world.block.entity.SCTBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -17,6 +18,14 @@ public final class MACBlockEntities {
                     () -> BlockEntityType.Builder.of(
                             SCTBlockEntity::new,
                             MACBlocks.SCT.get()
+                    ).build(null)
+            );
+    public static final RegistryObject<BlockEntityType<ERBlockEntity>> ESSENCE_RESERVOIR =
+            BLOCK_ENTITIES.register(
+                    "essence_reservoir_block_entity",
+                    () -> BlockEntityType.Builder.of(
+                            ERBlockEntity::new,
+                            MACBlocks.ESSENCE_RESERVOIR.get()
                     ).build(null)
             );
 

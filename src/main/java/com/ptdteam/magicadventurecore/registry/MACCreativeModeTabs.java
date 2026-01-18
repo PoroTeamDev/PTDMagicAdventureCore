@@ -19,6 +19,7 @@ public final class MACCreativeModeTabs {
                     .icon(() -> new ItemStack(MACItems.SCT.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(MACItems.SCT.get());
+                        output.accept(MACItems.ESSENCE_RESERVOIR.get());
                     })
                     .build()
     );

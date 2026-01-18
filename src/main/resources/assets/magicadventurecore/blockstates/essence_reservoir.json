@@ -1,0 +1,41 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "magicadventurecore:block/essence_reservoir"
+      }
+    },
+    {
+      "when": {
+        "level": 1
+      },
+      "apply": {
+        "model": "magicadventurecore:block/essence_reservoir_fluid_level1"
+      }
+    },
+    {
+      "when": {
+        "level": 2
+      },
+      "apply": {
+        "model": "magicadventurecore:block/essence_reservoir_fluid_level2"
+      }
+    },
+    {
+      "when": {
+        "level": 3
+      },
+      "apply": {
+        "model": "magicadventurecore:block/essence_reservoir_fluid_level3"
+      }
+    },
+    {
+      "when": {
+        "level": 4
+      },
+      "apply": {
+        "model": "magicadventurecore:block/essence_reservoir_fluid_level4"
+      }
+    }
+  ]
+}
