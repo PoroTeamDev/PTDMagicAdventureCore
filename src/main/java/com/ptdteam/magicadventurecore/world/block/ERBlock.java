@@ -30,7 +30,7 @@ import java.util.List;
 
 public class ERBlock extends Block implements EntityBlock {
     public static final IntegerProperty LEVEL = IntegerProperty.create("level", 0, 4);
-    private static final ResourceLocation BLOOD_FLUID_ID = ResourceLocation.fromNamespaceAndPath("bloodmagic", "life_essence");
+    private static final ResourceLocation BLOOD_FLUID_ID = ResourceLocation.fromNamespaceAndPath("bloodmagic", "life_essence_fluid");
 
     public ERBlock(Properties properties) {
         super(properties.mapColor(MapColor.METAL));

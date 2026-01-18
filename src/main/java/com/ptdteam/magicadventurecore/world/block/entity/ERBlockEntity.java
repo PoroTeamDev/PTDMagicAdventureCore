@@ -151,12 +151,12 @@ public class ERBlockEntity extends BlockEntity implements ManaReceiver {
 
     @Override
     public Level getManaReceiverLevel() {
-        return null;
+        return level;
     }
 
     @Override
     public BlockPos getManaReceiverPos() {
-        return null;
+        return worldPosition;
     }
 
     @Override
