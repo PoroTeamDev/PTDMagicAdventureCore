@@ -2,10 +2,10 @@ package com.ptdteam.magicadventurecore.world.block.entity;
 
 import com.ptdteam.magicadventurecore.registry.MACBlockEntities;
 import com.ptdteam.magicadventurecore.world.block.ERBlock;
-
 import com.ptdteam.magicadventurecore.world.essence.EssenceStorage;
 import com.ptdteam.magicadventurecore.world.essence.EssenceType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.Mth;
@@ -13,7 +13,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.Nullable;
+import vazkii.botania.api.BotaniaForgeCapabilities;
 import vazkii.botania.api.mana.ManaReceiver;
 
 public class ERBlockEntity extends BlockEntity implements ManaReceiver {
@@ -21,6 +24,7 @@ public class ERBlockEntity extends BlockEntity implements ManaReceiver {
 
     private EssenceType essenceType = EssenceType.NONE;
     private int essenceAmount = 0;
+    private LazyOptional<ManaReceiver> manaReceiver = LazyOptional.of(() -> this);
 
     public ERBlockEntity(BlockPos pos, BlockState state) {
         super(MACBlockEntities.ESSENCE_RESERVOIR.get(), pos, state);
@@ -142,6 +146,26 @@ public class ERBlockEntity extends BlockEntity implements ManaReceiver {
     @Override
     public CompoundTag getUpdateTag() {
         return saveWithoutMetadata();
+    }
+
+    @Override
+    public void invalidateCaps() {
+        super.invalidateCaps();
+        manaReceiver.invalidate();
+    }
+
+    @Override
+    public void reviveCaps() {
+        super.reviveCaps();
+        manaReceiver = LazyOptional.of(() -> this);
+    }
+
+    @Override
+    public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
+        if (cap == BotaniaForgeCapabilities.MANA_RECEIVER) {
+            return manaReceiver.cast();
+        }
+        return super.getCapability(cap, side);
     }
 
     @Override
