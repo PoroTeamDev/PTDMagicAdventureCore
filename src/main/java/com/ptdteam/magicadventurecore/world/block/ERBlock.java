@@ -19,6 +19,8 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.FluidStack;
@@ -30,7 +32,8 @@ import java.util.List;
 
 public class ERBlock extends Block implements EntityBlock {
     public static final IntegerProperty LEVEL = IntegerProperty.create("level", 0, 4);
-    private static final ResourceLocation BLOOD_FLUID_ID = ResourceLocation.fromNamespaceAndPath("bloodmagic", "life_essence_fluid");
+    private static final ResourceLocation BLOOD_FLUID_ID = ResourceLocation.fromNamespaceAndPath("bloodmagic", "life_essence");
+    private static final VoxelShape SHAPE = Block.box(3D, 0D, 3D, 13D, 10D, 13D);
 
     public ERBlock(Properties properties) {
         super(properties.mapColor(MapColor.METAL));
@@ -40,6 +43,21 @@ public class ERBlock extends Block implements EntityBlock {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(LEVEL);
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPE;
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos, CollisionContext context) {
+        return SHAPE;
+    }
+
+    @Override
+    public VoxelShape getOcclusionShape(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos) {
+        return SHAPE;
     }
 
     @Override
