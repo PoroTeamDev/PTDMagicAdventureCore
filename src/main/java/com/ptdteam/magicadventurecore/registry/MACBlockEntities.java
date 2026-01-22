@@ -1,6 +1,7 @@
 package com.ptdteam.magicadventurecore.registry;
 
 import com.ptdteam.magicadventurecore.MagicAdventureCore;
+import com.ptdteam.magicadventurecore.world.block.entity.AEBlockEntity;
 import com.ptdteam.magicadventurecore.world.block.entity.ERBlockEntity;
 import com.ptdteam.magicadventurecore.world.block.entity.SCTBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -26,6 +27,14 @@ public final class MACBlockEntities {
                     () -> BlockEntityType.Builder.of(
                             ERBlockEntity::new,
                             MACBlocks.ESSENCE_RESERVOIR.get()
+                    ).build(null)
+            );
+    public static final RegistryObject<BlockEntityType<AEBlockEntity>> ARCANE_EXTRACTOR =
+            BLOCK_ENTITIES.register(
+                    "arcane_extractor_block_entity",
+                    () -> BlockEntityType.Builder.of(
+                            AEBlockEntity::new,
+                            MACBlocks.ARCANE_EXTRACTOR.get()
                     ).build(null)
             );
 

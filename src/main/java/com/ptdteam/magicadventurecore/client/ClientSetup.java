@@ -1,8 +1,13 @@
 package com.ptdteam.magicadventurecore.client;
 
-import com.ptdteam.magicadventurecore.client.SCTScreen;
+//import com.ptdteam.magicadventurecore.client.SCTScreen;
+import com.ptdteam.magicadventurecore.registry.MACBlocks;
+import com.ptdteam.magicadventurecore.registry.MACBlockEntities;
 import com.ptdteam.magicadventurecore.registry.MACMenus;
 import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
@@ -16,5 +21,7 @@ public final class ClientSetup {
 
     public static void onClientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> MenuScreens.register(MACMenus.SCT_CRAFTING_MENU.get(), SCTScreen::new));
+        ItemBlockRenderTypes.setRenderLayer(MACBlocks.get(), RenderType.cutout());
+        BlockEntityRenderers.register(MACBlockEntities.ARCANE_EXTRACTOR.get(), AERenderer::new);
     }
 }

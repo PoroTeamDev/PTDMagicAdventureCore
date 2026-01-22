@@ -8,7 +8,8 @@ public enum EssenceType {
     NONE("empty", 0x000000),
     MANA("botania:mana", 0x2aa6d9),
     BLOOD("bloodmagic:life_essence", 0x7a0b0b),
-    LIFE("magicadventurecore:life", 0xff2a2a);
+    LIFE("magicadventurecore:life", 0xff2a2a),
+    ARCANA("divinerpg:arcana", 0x8d5dff);
 
     private final String id;
     private final int color;

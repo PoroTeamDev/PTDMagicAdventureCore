@@ -20,6 +20,7 @@ public final class MACCreativeModeTabs {
                     .displayItems((parameters, output) -> {
                         output.accept(MACItems.SCT.get());
                         output.accept(MACItems.ESSENCE_RESERVOIR.get());
+                        output.accept(MACItems.ARCANE_EXTRACTOR.get());
                     })
                     .build()
     );

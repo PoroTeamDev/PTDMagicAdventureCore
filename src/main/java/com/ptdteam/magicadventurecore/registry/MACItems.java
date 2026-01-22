@@ -22,6 +22,10 @@ public final class MACItems {
             () -> new ERItem(new Item.Properties())
     );
 
+    public static final RegistryObject<Item> ARCANE_EXTRACTOR = ITEMS.register(
+            "arcane_extractor",
+            () -> new BlockItem(MACBlocks.ARCANE_EXTRACTOR.get(), new Item.Properties())
+    );
     private MACItems() {
     }
 

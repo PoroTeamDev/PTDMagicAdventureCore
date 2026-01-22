@@ -1,6 +1,7 @@
 package com.ptdteam.magicadventurecore.registry;
 
 import com.ptdteam.magicadventurecore.MagicAdventureCore;
+import com.ptdteam.magicadventurecore.world.block.AEBlock;
 import com.ptdteam.magicadventurecore.world.block.ERBlock;
 import com.ptdteam.magicadventurecore.world.block.SCTBlock;
 import net.minecraft.world.level.block.Block;
@@ -23,10 +24,18 @@ public final class MACBlocks {
             () -> new ERBlock(BlockBehaviour.Properties.of().strength(3.5F).noOcclusion())
     );
 
+    public static final RegistryObject<Block> ARCANE_EXTRACTOR = BLOCKS.register(
+            "arcane_extractor",
+            () -> new AEBlock(BlockBehaviour.Properties.of().strength(3.5F).noOcclusion())
+    );
     private MACBlocks() {
     }
 
     public static void register(net.minecraftforge.eventbus.api.IEventBus eventBus) {
         BLOCKS.register(eventBus);
+    }
+
+    public static Block get() {
+        return ARCANE_EXTRACTOR.get();
     }
 }
