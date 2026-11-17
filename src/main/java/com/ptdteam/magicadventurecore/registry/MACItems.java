@@ -48,6 +48,36 @@ public final class MACItems {
             () -> new com.ptdteam.magicadventurecore.world.item.GemOfLifeItem(new Item.Properties())
     );
 
+    // ---------------------------------------------------------- блоки платформы SCT
+
+    public static final RegistryObject<Item> SCT_FRAME = ITEMS.register(
+            "sct_frame",
+            () -> new BlockItem(MACBlocks.SCT_FRAME.get(), new Item.Properties())
+    );
+    public static final RegistryObject<Item> SCT_MANA_RESERVOIR = ITEMS.register(
+            "sct_mana_reservoir",
+            () -> new BlockItem(MACBlocks.SCT_MANA_RESERVOIR.get(), new Item.Properties())
+    );
+    public static final RegistryObject<Item> SCT_BLOOD_RESERVOIR = ITEMS.register(
+            "sct_blood_reservoir",
+            () -> new BlockItem(MACBlocks.SCT_BLOOD_RESERVOIR.get(), new Item.Properties())
+    );
+    public static final RegistryObject<Item> SCT_ACCELERATOR = ITEMS.register(
+            "sct_accelerator",
+            () -> new BlockItem(MACBlocks.SCT_ACCELERATOR.get(), new Item.Properties())
+    );
+    public static final RegistryObject<Item> MAGE_STABILIZER = ITEMS.register(
+            "mage_stabilizer",
+            () -> new BlockItem(MACBlocks.MAGE_STABILIZER.get(), new Item.Properties())
+    );
+
+    /** Магический мел: чертит круг вокруг SCT. Прочность 100 (хватает на 88 клеток). */
+    public static final RegistryObject<Item> ARCANE_CHALK = ITEMS.register(
+            "arcane_chalk",
+            () -> new com.ptdteam.magicadventurecore.world.item.ArcaneChalkItem(
+                    new Item.Properties().durability(100))
+    );
+
     private MACItems() {
     }
 

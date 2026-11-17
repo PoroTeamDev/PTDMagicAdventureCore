@@ -18,6 +18,16 @@ public class MACItemModelProvider extends ItemModelProvider {
         withExistingParent("sct", modLoc("block/sct_crafting_block"));
         withExistingParent("essence_reservoir", modLoc("block/essence_reservoir"));
         withExistingParent("arcane_extractor", modLoc("block/arcane_extractor"));
+        withExistingParent("sct_frame", modLoc("block/sct_frame"));
+        withExistingParent("sct_mana_reservoir", modLoc("block/sct_mana_reservoir"));
+        withExistingParent("sct_blood_reservoir", modLoc("block/sct_blood_reservoir"));
+        withExistingParent("sct_accelerator", modLoc("block/sct_accelerator"));
+        withExistingParent("mage_stabilizer", modLoc("block/stabilizer"));
+
+        // Мел использует текстуру item/chulk (так назвал файл автор ассета).
+        getBuilder("arcane_chalk")
+                .parent(new net.minecraftforge.client.model.generators.ModelFile.UncheckedModelFile("item/generated"))
+                .texture("layer0", modLoc("item/chulk"));
 
         // Обычные предметы: item/generated + текстура item/<id>.
         basicItem(MACItems.HALITE_SHARD.get());

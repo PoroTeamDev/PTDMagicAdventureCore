@@ -28,6 +28,11 @@ public class MACBlockLootTableProvider extends LootTableProvider {
         @Override
         protected void generate() {
             dropSelf(MACBlocks.SCT.get());
+            dropSelf(MACBlocks.SCT_FRAME.get());
+            dropSelf(MACBlocks.SCT_MANA_RESERVOIR.get());
+            dropSelf(MACBlocks.SCT_BLOOD_RESERVOIR.get());
+            dropSelf(MACBlocks.SCT_ACCELERATOR.get());
+            dropSelf(MACBlocks.MAGE_STABILIZER.get());
             dropSelf(MACBlocks.ARCANE_EXTRACTOR.get());
             // Содержимое резервуара переносится в предмет через minecraft:copy_nbt из блочной сущности.
             add(MACBlocks.ESSENCE_RESERVOIR.get(), createSingleItemTable(MACItems.ESSENCE_RESERVOIR.get())
@@ -40,6 +45,11 @@ public class MACBlockLootTableProvider extends LootTableProvider {
         protected Iterable<Block> getKnownBlocks() {
             return List.of(
                     MACBlocks.SCT.get(),
+                    MACBlocks.SCT_FRAME.get(),
+                    MACBlocks.SCT_MANA_RESERVOIR.get(),
+                    MACBlocks.SCT_BLOOD_RESERVOIR.get(),
+                    MACBlocks.SCT_ACCELERATOR.get(),
+                    MACBlocks.MAGE_STABILIZER.get(),
                     MACBlocks.ARCANE_EXTRACTOR.get(),
                     MACBlocks.ESSENCE_RESERVOIR.get()
             );

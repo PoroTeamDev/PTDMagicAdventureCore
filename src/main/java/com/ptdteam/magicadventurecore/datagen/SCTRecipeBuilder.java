@@ -21,6 +21,8 @@ public class SCTRecipeBuilder implements FinishedRecipe {
     private final ItemStack result;
     private final int bloodCost;
     private final int manaCost;
+    /** 0 — простой рецепт; > 0 — стабилизированный (нужен ритуал). */
+    private final int stability;
 
     public SCTRecipeBuilder(
             ResourceLocation id,
@@ -31,6 +33,19 @@ public class SCTRecipeBuilder implements FinishedRecipe {
             int bloodCost,
             int manaCost
     ) {
+        this(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost, 0);
+    }
+
+    public SCTRecipeBuilder(
+            ResourceLocation id,
+            List<Ingredient> ingredients,
+            Optional<Ingredient> bloodOrb,
+            Optional<Ingredient> manaMirror,
+            ItemStack result,
+            int bloodCost,
+            int manaCost,
+            int stability
+    ) {
         this.id = id;
         this.ingredients = ingredients;
         this.bloodOrb = bloodOrb;
@@ -38,6 +53,7 @@ public class SCTRecipeBuilder implements FinishedRecipe {
         this.result = result;
         this.bloodCost = bloodCost;
         this.manaCost = manaCost;
+        this.stability = stability;
     }
 
     @Override
@@ -54,6 +70,9 @@ public class SCTRecipeBuilder implements FinishedRecipe {
         }
         if (manaCost > 0) {
             json.addProperty("mana_cost", manaCost);
+        }
+        if (stability > 0) {
+            json.addProperty("stability", stability);
         }
 
         JsonObject resultJson = new JsonObject();

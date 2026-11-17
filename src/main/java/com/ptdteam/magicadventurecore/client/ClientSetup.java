@@ -34,7 +34,13 @@ public final class ClientSetup {
             // Модель аркана-экстрактора использует cutout; резервуар полагается на render_type
             // своих моделей (opaque корпус + translucent жидкость), поэтому ему слой не задаём.
             ItemBlockRenderTypes.setRenderLayer(MACBlocks.ARCANE_EXTRACTOR.get(), RenderType.cutout());
+            // Метки мела — плоские глифы с прозрачностью.
+            ItemBlockRenderTypes.setRenderLayer(MACBlocks.CHALK_MARK.get(), RenderType.cutout());
             BlockEntityRenderers.register(MACBlockEntities.ARCANE_EXTRACTOR.get(), AERenderer::new);
+            // Рисунок магического круга над площадкой SCT.
+            BlockEntityRenderers.register(MACBlockEntities.SCT_BLOCK_ENTITY.get(), SCTRitualRenderer::new);
+            // Свечение кристаллов стабилизатора от уровня заряда.
+            BlockEntityRenderers.register(MACBlockEntities.MAGE_STABILIZER.get(), MageStabilizerRenderer::new);
 
             // Гем Жизни: 8 моделей по степени заполнения (predicate fill).
             ItemProperties.register(MACItems.GEM_OF_LIFE.get(),

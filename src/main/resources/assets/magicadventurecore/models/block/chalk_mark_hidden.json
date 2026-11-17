@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "magicadventurecore:block/chalk_mark"
+  }
+}

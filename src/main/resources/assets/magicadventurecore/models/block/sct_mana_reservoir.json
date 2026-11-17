@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "particle": "magicadventurecore:block/sct_mana_reservoir/sct_mana_reservoir_side",
+    "bottom": "magicadventurecore:block/sct_mana_reservoir/sct_mana_reservoir_bottom",
+    "top": "magicadventurecore:block/sct_mana_reservoir/sct_mana_reservoir_top",
+    "side": "magicadventurecore:block/sct_mana_reservoir/sct_mana_reservoir_side"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "particle": "magicadventurecore:block/sct_accelerator/sct_accelerator_side",
+    "bottom": "magicadventurecore:block/sct_accelerator/sct_accelerator_bottom",
+    "top": "magicadventurecore:block/sct_accelerator/sct_accelerator_top",
+    "side": "magicadventurecore:block/sct_accelerator/sct_accelerator_side"
+  }
+}

@@ -41,5 +41,27 @@ public class MACLangProvider extends LanguageProvider {
         add("message.magicadventurecore.not_enough_mana", "Not enough Mana in the bound mana pool");
         add("message.magicadventurecore.craft_aborted", "Crafting aborted: ingredients or resources changed");
         add("message.magicadventurecore.reservoir_status", "Reservoir: %s — %s");
+
+        add(MACBlocks.SCT_FRAME.get(), "SCT Frame");
+        add(MACBlocks.SCT_MANA_RESERVOIR.get(), "Mana Reservoir Module");
+        add(MACBlocks.SCT_BLOOD_RESERVOIR.get(), "Blood Reservoir Module");
+        add(MACBlocks.SCT_ACCELERATOR.get(), "Acceleration Module");
+        add(MACBlocks.MAGE_STABILIZER.get(), "Mage Stabilizer");
+
+        add("gui.magicadventurecore.status.structure", "Structure: %s");
+        add("gui.magicadventurecore.status.structure.formed", "formed");
+        add("gui.magicadventurecore.status.structure.missing", "not formed (3x3 ring of 8 frames or 8 modules)");
+        add("gui.magicadventurecore.status.modules", "Modules: %s");
+
+        add(MACBlocks.CHALK_MARK.get(), "Chalk Mark");
+        add(MACItems.ARCANE_CHALK.get(), "Arcane Chalk");
+        add("tooltip.magicadventurecore.arcane_chalk", "Right-click the ground to draw the ritual circle");
+        add("gui.magicadventurecore.status.circle", "Circle: %s / %s");
+        add("message.magicadventurecore.not_formed",
+                "Build the 3x3 platform first (8 frames or modules around the table)");
+        add("message.magicadventurecore.circle_incomplete", "The chalk circle is incomplete: %s / %s");
+        add("message.magicadventurecore.not_enough_stabilizers", "Place 4 mage stabilizers around the circle");
+        add("gui.magicadventurecore.stability", "Stability: %s%%");
+        add("gui.magicadventurecore.status.stabilizers", "Stabilizers: %s / 4 (charge %s / %s)");
     }
 }

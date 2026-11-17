@@ -19,6 +19,12 @@ public final class MACCreativeModeTabs {
                     .icon(() -> new ItemStack(MACItems.SCT.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(MACItems.SCT.get());
+                        output.accept(MACItems.SCT_FRAME.get());
+                        output.accept(MACItems.SCT_MANA_RESERVOIR.get());
+                        output.accept(MACItems.SCT_BLOOD_RESERVOIR.get());
+                        output.accept(MACItems.SCT_ACCELERATOR.get());
+                        output.accept(MACItems.MAGE_STABILIZER.get());
+                        output.accept(MACItems.ARCANE_CHALK.get());
                         output.accept(MACItems.ESSENCE_RESERVOIR.get());
                         output.accept(MACItems.ARCANE_EXTRACTOR.get());
                         output.accept(MACItems.HALITE_SHARD.get());

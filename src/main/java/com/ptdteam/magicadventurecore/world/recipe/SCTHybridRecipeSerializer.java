@@ -27,6 +27,8 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         int manaCost = Math.max(0, GsonHelper.getAsInt(json, "mana_cost", 0));
         int craftTime = Math.max(0, Math.min(SCTHybridRecipe.MAX_CRAFT_TIME,
                 GsonHelper.getAsInt(json, "craft_time", SCTHybridRecipe.DEFAULT_CRAFT_TIME)));
+        // Нет поля — простой рецепт; > 0 — стабилизированный (нужен ритуал).
+        int stability = Math.max(0, GsonHelper.getAsInt(json, "stability", 0));
         NonNullList<Ingredient> ingredients = NonNullList.withSize(SCTCraftingMenu.INPUT_SLOTS, Ingredient.EMPTY);
         for (int i = 0; i < ingredientsJson.size(); i++) {
             ingredients.set(i, Ingredient.fromJson(ingredientsJson.get(i)));
@@ -34,7 +36,8 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         Ingredient bloodOrb = json.has("blood_orb") ? Ingredient.fromJson(json.get("blood_orb")) : Ingredient.EMPTY;
         Ingredient manaMirror = json.has("mana_mirror") ? Ingredient.fromJson(json.get("mana_mirror")) : Ingredient.EMPTY;
         ItemStack result = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
-        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost, craftTime);
+        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result,
+                bloodCost, manaCost, craftTime, stability);
     }
 
     @Nullable
@@ -44,6 +47,7 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         int bloodCost = buffer.readVarInt();
         int manaCost = buffer.readVarInt();
         int craftTime = buffer.readVarInt();
+        int stability = buffer.readVarInt();
         NonNullList<Ingredient> ingredients = NonNullList.withSize(size, Ingredient.EMPTY);
         for (int i = 0; i < size; i++) {
             ingredients.set(i, Ingredient.fromNetwork(buffer));
@@ -51,7 +55,8 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         Ingredient bloodOrb = Ingredient.fromNetwork(buffer);
         Ingredient manaMirror = Ingredient.fromNetwork(buffer);
         ItemStack result = buffer.readItem();
-        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost, craftTime);
+        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result,
+                bloodCost, manaCost, craftTime, stability);
     }
 
     @Override
@@ -60,6 +65,7 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         buffer.writeVarInt(recipe.getBloodCost());
         buffer.writeVarInt(recipe.getManaCost());
         buffer.writeVarInt(recipe.getCraftTime());
+        buffer.writeVarInt(recipe.getStability());
         for (Ingredient ingredient : recipe.getIngredients()) {
             ingredient.toNetwork(buffer);
         }

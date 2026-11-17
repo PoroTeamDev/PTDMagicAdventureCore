@@ -3,6 +3,7 @@ package com.ptdteam.magicadventurecore.registry;
 import com.ptdteam.magicadventurecore.MagicAdventureCore;
 import com.ptdteam.magicadventurecore.world.block.entity.AEBlockEntity;
 import com.ptdteam.magicadventurecore.world.block.entity.ERBlockEntity;
+import com.ptdteam.magicadventurecore.world.block.entity.MageStabilizerBlockEntity;
 import com.ptdteam.magicadventurecore.world.block.entity.SCTBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -35,6 +36,14 @@ public final class MACBlockEntities {
                     () -> BlockEntityType.Builder.of(
                             AEBlockEntity::new,
                             MACBlocks.ARCANE_EXTRACTOR.get()
+                    ).build(null)
+            );
+    public static final RegistryObject<BlockEntityType<MageStabilizerBlockEntity>> MAGE_STABILIZER =
+            BLOCK_ENTITIES.register(
+                    "mage_stabilizer_block_entity",
+                    () -> BlockEntityType.Builder.of(
+                            MageStabilizerBlockEntity::new,
+                            MACBlocks.MAGE_STABILIZER.get()
                     ).build(null)
             );
 

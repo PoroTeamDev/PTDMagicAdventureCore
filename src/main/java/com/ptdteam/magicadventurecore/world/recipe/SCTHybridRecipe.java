@@ -28,6 +28,12 @@ public class SCTHybridRecipe implements Recipe<Container> {
     private final int bloodCost;
     private final int manaCost;
     private final int craftTime;
+    /**
+     * Стоимость стабилизации. 0 — простой рецепт, работает на голом столе.
+     * Больше 0 — стабилизированный: нужна платформа 3×3, валидный круг мела
+     * и 4 заряженных стабилизатора.
+     */
+    private final int stability;
 
     public SCTHybridRecipe(
             ResourceLocation id,
@@ -37,7 +43,8 @@ public class SCTHybridRecipe implements Recipe<Container> {
             ItemStack result,
             int bloodCost,
             int manaCost,
-            int craftTime
+            int craftTime,
+            int stability
     ) {
         this.id = id;
         this.ingredients = ingredients;
@@ -47,11 +54,17 @@ public class SCTHybridRecipe implements Recipe<Container> {
         this.bloodCost = bloodCost;
         this.manaCost = manaCost;
         this.craftTime = craftTime;
+        this.stability = stability;
     }
 
     /** Сколько тиков играет анимация крафта. 0 — крафт мгновенный. */
     public int getCraftTime() {
         return craftTime;
+    }
+
+    /** Стоимость стабилизации (0 — простой рецепт, без ритуала). */
+    public int getStability() {
+        return stability;
     }
 
     @Override

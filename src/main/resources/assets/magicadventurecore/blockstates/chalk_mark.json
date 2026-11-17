@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "drawn=false": { "model": "magicadventurecore:block/chalk_mark" },
+    "drawn=true": { "model": "magicadventurecore:block/chalk_mark_hidden" }
+  }
+}

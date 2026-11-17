@@ -1,9 +1,11 @@
 package com.ptdteam.magicadventurecore.world.menu;
 
 import com.ptdteam.magicadventurecore.registry.MACMenus;
+import com.ptdteam.magicadventurecore.world.block.entity.MageStabilizerBlockEntity;
 import com.ptdteam.magicadventurecore.world.block.entity.SCTBlockEntity;
 import com.ptdteam.magicadventurecore.world.recipe.SCTHybridRecipe;
 import com.ptdteam.magicadventurecore.world.recipe.SCTRecipeLogic;
+import com.ptdteam.magicadventurecore.world.ritual.ChalkCircle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -225,17 +227,37 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
             notifyDenied(player, recipe.get());
             return;
         }
+        if (recipe.get().getStability() > 0) {
+            if (!blockEntity.isStructureFormed()) {
+                player.displayClientMessage(
+                        Component.translatable("message.magicadventurecore.not_formed"), true);
+                return;
+            }
+            if (!blockEntity.isCircleComplete()) {
+                player.displayClientMessage(Component.translatable(
+                        "message.magicadventurecore.circle_incomplete",
+                        blockEntity.getCircleMarks(),
+                        ChalkCircle.REQUIRED_MARKS), true);
+                return;
+            }
+            if (blockEntity.getStabilizerCount() < 4) {
+                player.displayClientMessage(Component.translatable(
+                        "message.magicadventurecore.not_enough_stabilizers"), true);
+                return;
+            }
+        }
         blockEntity.startCraft(player);
     }
 
     private void notifyDenied(Player player, SCTHybridRecipe recipe) {
-        String key;
-        if (!SCTRecipeLogic.hasEnoughBlood(
-                blockEntity.getInventory().getStackInSlot(BLOOD_SLOT), recipe.getBloodCost())) {
-            key = "message.magicadventurecore.not_enough_blood";
-        } else {
-            key = "message.magicadventurecore.not_enough_mana";
-        }
+        // Сначала буфер крови, остаток — из сферы (как в SCTBlockEntity#hasEnoughResources).
+        int bloodRemaining = recipe.getBloodCost() - Math.min(
+                blockEntity.getBloodBuffer(), recipe.getBloodCost());
+        boolean enoughBlood = bloodRemaining <= 0 || SCTRecipeLogic.hasEnoughBlood(
+                blockEntity.getInventory().getStackInSlot(BLOOD_SLOT), bloodRemaining);
+        String key = enoughBlood
+                ? "message.magicadventurecore.not_enough_mana"
+                : "message.magicadventurecore.not_enough_blood";
         player.displayClientMessage(Component.translatable(key), true);
     }
 
@@ -314,6 +336,48 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
         return (data.get(9) << 15) | data.get(8);
     }
 
+    /** Собрана ли платформа 3×3 (кольцо рамок или модулей). */
+    public boolean isStructureFormed() {
+        return data.get(10) != 0;
+    }
+
+    public int getModuleCount() {
+        return data.get(11);
+    }
+
+    /** Сколько клеток круга мела отмечено (этап 2). */
+    public int getCircleMarks() {
+        return data.get(12);
+    }
+
+    /** Сколько клеток нужно для полного круга (88). */
+    public int getRequiredCircleMarks() {
+        return ChalkCircle.REQUIRED_MARKS;
+    }
+
+    /** Сколько из 4 стабилизаторов на месте (этап 3). */
+    public int getStabilizerCount() {
+        return data.get(13);
+    }
+
+    /** Суммарный заряд стабилизаторов (этап 3). */
+    public int getStabilizerCharge() {
+        return (data.get(15) << 15) | data.get(14);
+    }
+
+    public int getStabilizerChargeMax() {
+        return getStabilizerCount() * MageStabilizerBlockEntity.MAX_CHARGE;
+    }
+
+    /** Шкала стабильности ритуала 0..1000 (1000 — полная). */
+    public int getStability() {
+        return data.get(16);
+    }
+
+    public int getStabilityMax() {
+        return SCTBlockEntity.STABILITY_MAX;
+    }
+
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
         if (blockEntity.isCrafting()) {
@@ -376,7 +440,7 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
     }
 
     private static class SCTCraftingData implements ContainerData {
-        private static final int SLOT_COUNT = 10;
+        private static final int SLOT_COUNT = 17;
 
         private final SCTBlockEntity blockEntity;
         private final Player player;
@@ -400,31 +464,52 @@ public class SCTCraftingMenu extends AbstractContainerMenu {
             if (isClientSide()) {
                 return syncedValues[index];
             }
-            ItemStackHandler handler = blockEntity.getInventory();
-            ItemStack blood = handler.getStackInSlot(BLOOD_SLOT);
+            ItemStack blood = blockEntity.getInventory().getStackInSlot(BLOOD_SLOT);
             int mana = blockEntity.getManaBuffer();
-            int manaMax = SCTBlockEntity.MAX_MANA;
+            int manaCapacity = Math.max(1, blockEntity.getManaCapacity());
+            int bloodCapacity = blockEntity.getBloodCapacity();
+            // С платформой кровь живёт в буфере машины, без неё — в сфере (как раньше).
+            int bloodAmount = bloodCapacity > 0
+                    ? blockEntity.getBloodBuffer()
+                    : SCTRecipeLogic.getBloodAmount(blood);
+            int bloodMax = bloodCapacity > 0
+                    ? bloodCapacity
+                    : SCTRecipeLogic.getBloodCapacity(blood);
             switch (index) {
                 case 0:
-                    return SCTRecipeLogic.getBloodFillPercentage(blood);
+                    return bloodMax > 0 ? Math.min(100, bloodAmount * 100 / bloodMax) : 0;
                 case 1:
-                    return manaMax > 0 ? Math.min(100, mana * 100 / manaMax) : 0;
+                    return Math.min(100, mana * 100 / manaCapacity);
                 case 2:
-                    return SCTRecipeLogic.getBloodAmount(blood) & 0x7FFF;
+                    return bloodAmount & 0x7FFF;
                 case 3:
-                    return (SCTRecipeLogic.getBloodAmount(blood) >> 15) & 0x7FFF;
+                    return (bloodAmount >> 15) & 0x7FFF;
                 case 4:
                     return mana & 0x7FFF;
                 case 5:
                     return (mana >> 15) & 0x7FFF;
                 case 6:
-                    return SCTRecipeLogic.getBloodCapacity(blood) & 0x7FFF;
+                    return bloodMax & 0x7FFF;
                 case 7:
-                    return (SCTRecipeLogic.getBloodCapacity(blood) >> 15) & 0x7FFF;
+                    return (bloodMax >> 15) & 0x7FFF;
                 case 8:
-                    return manaMax & 0x7FFF;
+                    return manaCapacity & 0x7FFF;
                 case 9:
-                    return (manaMax >> 15) & 0x7FFF;
+                    return (manaCapacity >> 15) & 0x7FFF;
+                case 10:
+                    return blockEntity.isStructureFormed() ? 1 : 0;
+                case 11:
+                    return blockEntity.getModuleCount();
+                case 12:
+                    return blockEntity.getCircleMarks();
+                case 13:
+                    return blockEntity.getStabilizerCount();
+                case 14:
+                    return blockEntity.getStabilizerCharge() & 0x7FFF;
+                case 15:
+                    return (blockEntity.getStabilizerCharge() >> 15) & 0x7FFF;
+                case 16:
+                    return blockEntity.getStability();
                 default:
                     return 0;
             }

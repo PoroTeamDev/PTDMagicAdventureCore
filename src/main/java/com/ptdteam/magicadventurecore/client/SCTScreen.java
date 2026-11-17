@@ -58,6 +58,14 @@ public class SCTScreen extends AbstractContainerScreen<SCTCraftingMenu> {
     private static final int MANA_EMPTY = 0xFF071A2E;
     private static final int BAR_BORDER = 0xFF101010;
 
+    // Шкала стабильности ритуала (в стиле полоски опыта) — под компонентами, над инвентарём.
+    private static final int STABILITY_BAR_WIDTH = 100;
+    private static final int STABILITY_BAR_HEIGHT = 4;
+    private static final int STABILITY_BAR_Y = 132;
+    private static final int STABILITY_FILL = 0xFFEDEAE0;
+    private static final int STABILITY_EMPTY = 0xFF2B2B28;
+    private static final int STABILITY_BORDER = 0xFF101010;
+
     private static final int MACHINE_SLOT_COUNT = SCTCraftingMenu.OUTPUT_SLOT + 1;
     /** Количество частиц в «туче» на каждую шкалу (первый вариант потока). */
     private static final int CLOUD_PARTICLES = 64;
@@ -123,6 +131,36 @@ public class SCTScreen extends AbstractContainerScreen<SCTCraftingMenu> {
 
         drawBar(graphics, bloodBarX(), barY(), menu.getBloodFill(), BLOOD_FILL, BLOOD_EMPTY);
         drawBar(graphics, manaBarX(), barY(), menu.getManaFill(), MANA_FILL, MANA_EMPTY);
+        drawStabilityBar(graphics);
+    }
+
+    /** Шкала стабильности ритуала в стиле полоски опыта. */
+    private void drawStabilityBar(GuiGraphics graphics) {
+        int x = leftPos + (imageWidth - STABILITY_BAR_WIDTH) / 2;
+        int y = topPos + STABILITY_BAR_Y;
+        graphics.fill(x - 1, y - 1, x + STABILITY_BAR_WIDTH + 1, y + STABILITY_BAR_HEIGHT + 1,
+                STABILITY_BORDER);
+        graphics.fill(x, y, x + STABILITY_BAR_WIDTH, y + STABILITY_BAR_HEIGHT, STABILITY_EMPTY);
+        int max = Math.max(1, menu.getStabilityMax());
+        int filled = menu.getStability() * STABILITY_BAR_WIDTH / max;
+        filled = Math.max(0, Math.min(STABILITY_BAR_WIDTH, filled));
+        if (filled > 0) {
+            graphics.fill(x, y, x + filled, y + STABILITY_BAR_HEIGHT, STABILITY_FILL);
+            graphics.fill(x, y, x + filled, y + 1, 0x66FFFFFF);
+        }
+    }
+
+    private void renderStabilityTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int x = leftPos + (imageWidth - STABILITY_BAR_WIDTH) / 2;
+        int y = topPos + STABILITY_BAR_Y;
+        if (mouseX >= x - 1 && mouseX < x + STABILITY_BAR_WIDTH + 1
+                && mouseY >= y - 1 && mouseY < y + STABILITY_BAR_HEIGHT + 1) {
+            int max = Math.max(1, menu.getStabilityMax());
+            int percent = Math.min(100, menu.getStability() * 100 / max);
+            graphics.renderTooltip(font,
+                    Component.translatable("gui.magicadventurecore.stability", percent),
+                    mouseX, mouseY);
+        }
     }
 
     private void drawBar(GuiGraphics graphics, int x, int y, int percent, int fillColor, int emptyColor) {
@@ -147,9 +185,103 @@ public class SCTScreen extends AbstractContainerScreen<SCTCraftingMenu> {
         syncAnimationState(partialTick);
         renderBackground(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+        renderStatusIcons(graphics, mouseX, mouseY);
+        renderStabilityTooltip(graphics, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
         renderBarTooltips(graphics, mouseX, mouseY);
         renderCraft(graphics, partialTick);
+    }
+
+    /**
+     * Индикаторы под заголовком: платформа 3×3 и круг мела.
+     * Наведение показывает подробности (число модулей / закрашенных клеток).
+     */
+    private void renderStatusIcons(GuiGraphics graphics, int mouseX, int mouseY) {
+        int iconSize = 8;
+        int gap = 6;
+        int totalWidth = iconSize * 3 + gap * 2;
+        int startX = leftPos + (imageWidth - totalWidth) / 2;
+        int y = topPos + 13;
+
+        // 1) Платформа: сетка 3×3.
+        int structureX = startX;
+        boolean formed = menu.isStructureFormed();
+        int structureColor = formed ? 0xFF5CD65C : 0xFFD64B4B;
+        graphics.fill(structureX - 2, y - 2, structureX + iconSize + 2, y + iconSize + 2, 0x90000000);
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 3; col++) {
+                graphics.fill(structureX + col * 3, y + row * 3,
+                        structureX + col * 3 + 2, y + row * 3 + 2, structureColor);
+            }
+        }
+        if (isOverIcon(mouseX, mouseY, structureX, y, iconSize)) {
+            Component status = Component.translatable(
+                    "gui.magicadventurecore.status.structure",
+                    Component.translatable(formed
+                            ? "gui.magicadventurecore.status.structure.formed"
+                            : "gui.magicadventurecore.status.structure.missing"));
+            if (formed) {
+                status = status.copy().append("\n").append(Component.translatable(
+                        "gui.magicadventurecore.status.modules", menu.getModuleCount()));
+            }
+            graphics.renderTooltip(font, status, mouseX, mouseY);
+        }
+
+        // 2) Круг мела: кольцо, цвет по прогрессу.
+        int circleX = startX + iconSize + gap;
+        int marks = menu.getCircleMarks();
+        int required = menu.getRequiredCircleMarks();
+        int circleColor = required > 0 && marks >= required
+                ? 0xFF5CD65C
+                : (marks > 0 ? 0xFFFFC94D : 0xFFD64B4B);
+        graphics.fill(circleX - 2, y - 2, circleX + iconSize + 2, y + iconSize + 2, 0x90000000);
+        drawRing(graphics, circleX + 4, y + 4, 4, 2, circleColor);
+        if (isOverIcon(mouseX, mouseY, circleX, y, iconSize)) {
+            graphics.renderTooltip(font, Component.translatable(
+                    "gui.magicadventurecore.status.circle", marks, required), mouseX, mouseY);
+        }
+
+        // 3) Стабилизаторы: ромб, цвет по количеству и заряду.
+        int stabilizerX = circleX + iconSize + gap;
+        int stabilizerCount = menu.getStabilizerCount();
+        int stabilizerCharge = menu.getStabilizerCharge();
+        int stabilizerColor = stabilizerCount >= 4
+                ? (stabilizerCharge > 0 ? 0xFF5CD65C : 0xFFFFC94D)
+                : 0xFFD64B4B;
+        graphics.fill(stabilizerX - 2, y - 2, stabilizerX + iconSize + 2, y + iconSize + 2, 0x90000000);
+        drawDiamond(graphics, stabilizerX + 4, y + 4, 4, stabilizerColor);
+        if (isOverIcon(mouseX, mouseY, stabilizerX, y, iconSize)) {
+            graphics.renderTooltip(font, Component.translatable(
+                    "gui.magicadventurecore.status.stabilizers",
+                    stabilizerCount, stabilizerCharge, menu.getStabilizerChargeMax()),
+                    mouseX, mouseY);
+        }
+    }
+
+    /** Ромб из горизонтальных полос (иконка стабилизатора). */
+    private static void drawDiamond(GuiGraphics graphics, int cx, int cy, int radius, int color) {
+        for (int dy = -radius; dy <= radius; dy++) {
+            int half = radius - Math.abs(dy);
+            graphics.fill(cx - half, cy + dy, cx + half + 1, cy + dy + 1, color);
+        }
+    }
+
+    /** Кольцо из горизонтальных полос (для иконки круга). */
+    private static void drawRing(GuiGraphics graphics, int cx, int cy, int outer, int inner, int color) {
+        for (int dy = -outer; dy <= outer; dy++) {
+            int outerHalf = (int) Math.sqrt((double) (outer * outer - dy * dy));
+            if (Math.abs(dy) >= inner) {
+                graphics.fill(cx - outerHalf, cy + dy, cx + outerHalf + 1, cy + dy + 1, color);
+                continue;
+            }
+            int innerHalf = (int) Math.sqrt((double) (inner * inner - dy * dy));
+            graphics.fill(cx - outerHalf, cy + dy, cx - innerHalf, cy + dy + 1, color);
+            graphics.fill(cx + innerHalf, cy + dy, cx + outerHalf + 1, cy + dy + 1, color);
+        }
+    }
+
+    private static boolean isOverIcon(int mouseX, int mouseY, int x, int y, int size) {
+        return mouseX >= x - 2 && mouseX < x + size + 2 && mouseY >= y - 2 && mouseY < y + size + 2;
     }
 
     private void syncAnimationState(float partialTick) {

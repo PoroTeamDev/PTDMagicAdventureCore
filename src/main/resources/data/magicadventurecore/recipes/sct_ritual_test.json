@@ -1,0 +1,20 @@
+{
+  "type": "magicadventurecore:sct_hybrid_crafting",
+  "ingredients": [
+    {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"},
+    {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}, {"item": "minecraft:stone"}
+  ],
+  "blood_cost": 1000,
+  "mana_cost": 1000,
+  "stability": 2000,
+  "craft_time": 120,
+  "blood_orb": {
+    "item": "bloodmagic:weakbloodorb"
+  },
+  "mana_mirror": {
+    "item": "botania:mana_mirror"
+  },
+  "result": {
+    "item": "minecraft:diamond"
+  }
+}

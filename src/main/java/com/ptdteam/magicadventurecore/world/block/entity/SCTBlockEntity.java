@@ -2,10 +2,13 @@ package com.ptdteam.magicadventurecore.world.block.entity;
 
 import com.ptdteam.magicadventurecore.registry.MACBlockEntities;
 import com.ptdteam.magicadventurecore.world.menu.SCTCraftingMenu;
+import com.ptdteam.magicadventurecore.world.multiblock.SCTStructure;
 import com.ptdteam.magicadventurecore.world.recipe.SCTHybridRecipe;
 import com.ptdteam.magicadventurecore.world.recipe.SCTRecipeLogic;
+import com.ptdteam.magicadventurecore.world.ritual.ChalkCircle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -35,6 +38,7 @@ import vazkii.botania.api.mana.ManaReceiver;
 import vazkii.botania.api.mana.spark.ManaSpark;
 import vazkii.botania.api.mana.spark.SparkAttachable;
 import vazkii.botania.common.entity.ManaSparkEntity;
+import wayoftime.bloodmagic.core.data.SoulNetwork;
 
 import java.util.List;
 import java.util.Optional;
@@ -48,17 +52,29 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
     public static final int OUTPUT_SLOT = 16;
     public static final int TOTAL_SLOTS = 17;
 
-    /**
-     * Внутренний буфер маны: сюда сливают искры Botania и мана-предметы из слота.
-     * Голый стол (без кольца 3×3) — 5 000. С кольцом рамок будет 50 000, модули добавят
-     * сверху; ёмкость станет динамической на этапе мультиблока.
-     */
-    public static final int MAX_MANA = 5_000;
-    /** Сколько маны в тик забираем из мана-предмета в буфер. */
-    public static final int MANA_PULL_PER_TICK = 5000;
-    /** Скорость перекачки ресурсов в анимации: замедлена в 3 раза (было 1000 единиц в секунду). */
+    // ------------------------------------------------------------- ёмкости
+
+    /** Голый стол (без кольца 3×3): буфер маны 5 000, крови нет (платим из сферы). */
+    public static final int BASE_MANA_CAPACITY = 5_000;
+    /** Собранная платформа (кольцо рамок или модулей): базовые буферы по 50 000. */
+    public static final int FORMED_MANA_CAPACITY = 50_000;
+    public static final int FORMED_BLOOD_CAPACITY = 50_000;
+    /** Сколько маны в тик забираем из мана-предмета в буфер (модули ускоряют). */
+    public static final int MANA_PULL_PER_TICK = 5_000;
+    /** Сколько LP в тик забираем из сферы крови в буфер (модули ускоряют). */
+    public static final int BLOOD_PULL_PER_TICK = 500;
+    /** Скорость перекачки ресурсов в анимации: 320 единиц в секунду. */
     public static final int RESOURCE_PER_SECOND = 320;
     public static final int RESOURCE_PER_TICK = RESOURCE_PER_SECOND / 20;
+
+    /** Шкала стабильности ритуала: 1000 = полная. */
+    public static final int STABILITY_MAX = 1_000;
+    /** Когда стабилизаторы разряжены, шкала падает до нуля за 10 секунд (5/тик). */
+    public static final int STABILITY_DRAIN_PER_TICK = 5;
+    /** Смещения 4 стабилизаторов от контроллера (кардинальные точки, тот же Y). */
+    public static final int[][] STABILIZER_OFFSETS = {
+            {6, 0}, {-6, 0}, {0, 6}, {0, -6}
+    };
 
     /**
      * Сырой инвентарь. Меню работает именно с ним: слоты Forge-а читают и вынимают
@@ -99,13 +115,25 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
     private final LazyOptional<ManaReceiver> manaReceiver = LazyOptional.of(() -> this);
     private final LazyOptional<SparkAttachable> sparkAttachable = LazyOptional.of(() -> this);
 
-    /** Внутренний буфер маны (0..MAX_MANA). */
+    /** Внутренний буфер маны (0..getManaCapacity()). */
     private int manaBuffer;
+    /** Внутренний буфер крови (0..getBloodCapacity()); у голого стола ёмкость 0. */
+    private int bloodBuffer;
+    /** Текущее состояние платформы 3×3 (синхронизируется клиенту для GUI). */
+    private SCTStructure.Info structure = SCTStructure.Info.INVALID;
+    /** Текущее состояние круга мела (сколько из 88 клеток закрашено). */
+    private ChalkCircle.Info circle = ChalkCircle.Info.EMPTY;
+    /** Шкала стабильности текущего ритуала (0..STABILITY_MAX). */
+    private int stability = STABILITY_MAX;
+    /** Стоимость стабилизации текущего крафта (0 — простой рецепт). */
+    private int craftStabilityCost;
+    /** true — стабилизаторов не хватило, шкала стабильности падает (ведёт к взрыву). */
+    private boolean destabilized;
 
     /** Идёт ли сейчас анимация крафта (слоты заблокированы, ингредиенты ещё не списаны). */
     private boolean crafting;
     private long craftStartGameTime;
-    /** Длительность фазы перекачки крови/маны в тиках (1000 единиц ресурса в секунду). */
+    /** Длительность фазы перекачки крови/маны в тиках. */
     private int craftResourceTicks;
     /** Длительность фазы поглощения ингредиентов в тиках. */
     private int craftDuration;
@@ -124,6 +152,226 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         return inventory;
     }
 
+    // ------------------------------------------------------------ платформа
+
+    public boolean isStructureFormed() {
+        return structure.formed();
+    }
+
+    public int getModuleCount() {
+        return structure.modules();
+    }
+
+    /** Сколько клеток круга мела закрашено. */
+    public int getCircleMarks() {
+        return circle.marks();
+    }
+
+    /** Начерчен ли круг полностью (все 88 клеток). */
+    public boolean isCircleComplete() {
+        return circle.complete();
+    }
+
+    public int getRequiredCircleMarks() {
+        return ChalkCircle.REQUIRED_MARKS;
+    }
+
+    // ------------------------------------------------------- стабилизаторы
+
+    /** Сколько из 4 стабилизаторов стоит на своих местах. */
+    public int getStabilizerCount() {
+        return findStabilizers().size();
+    }
+
+    /** Суммарный заряд всех стабилизаторов. */
+    public int getStabilizerCharge() {
+        int total = 0;
+        for (MageStabilizerBlockEntity stabilizer : findStabilizers()) {
+            total += stabilizer.getCharge();
+        }
+        return total;
+    }
+
+    public int getStabilizerChargeMax() {
+        return findStabilizers().size() * MageStabilizerBlockEntity.MAX_CHARGE;
+    }
+
+    /** Шкала стабильности 0..STABILITY_MAX. */
+    public int getStability() {
+        return stability;
+    }
+
+    public int getStabilityMax() {
+        return STABILITY_MAX;
+    }
+
+    private List<MageStabilizerBlockEntity> findStabilizers() {
+        Level level = getLevel();
+        if (level == null) {
+            return List.of();
+        }
+        java.util.List<MageStabilizerBlockEntity> found = new java.util.ArrayList<>(4);
+        for (int[] offset : STABILIZER_OFFSETS) {
+            BlockPos pos = worldPosition.offset(offset[0], 0, offset[1]);
+            if (level.hasChunkAt(pos) && level.getBlockEntity(pos) instanceof MageStabilizerBlockEntity stabilizer) {
+                found.add(stabilizer);
+            }
+        }
+        return found;
+    }
+
+    /** Снимает заряд с 4 стабилизаторов (по очереди), возвращает сколько сняли. */
+    private int drainStabilizers(int amount) {
+        int remaining = Math.max(0, amount);
+        int drained = 0;
+        for (MageStabilizerBlockEntity stabilizer : findStabilizers()) {
+            if (remaining <= 0) {
+                break;
+            }
+            int taken = stabilizer.drainCharge(remaining);
+            drained += taken;
+            remaining -= taken;
+        }
+        return drained;
+    }
+
+    /** Множитель времени крафта: 1.0 по умолчанию, 0.90 за каждый ускоритель. */
+    public float getCraftSpeedMultiplier() {
+        return structure.speedMultiplier();
+    }
+
+    public int getManaCapacity() {
+        return structure.formed() ? FORMED_MANA_CAPACITY + structure.manaBonus() : BASE_MANA_CAPACITY;
+    }
+
+    public int getBloodCapacity() {
+        return structure.formed() ? FORMED_BLOOD_CAPACITY + structure.bloodBonus() : 0;
+    }
+
+    public int getManaPullPerTick() {
+        return MANA_PULL_PER_TICK + structure.manaPullBonus();
+    }
+
+    public int getBloodPullPerTick() {
+        return BLOOD_PULL_PER_TICK + structure.bloodPullBonus();
+    }
+
+    /**
+     * Пересчёт структуры. На сервере — периодически (раз в секунду) и принудительно
+     * при старте крафта/загрузке; при изменении структура синкается клиенту.
+     */
+    public void refreshStructure(boolean force) {
+        Level level = getLevel();
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        if (!force && level.getGameTime() % 20L != 0L) {
+            return;
+        }
+        SCTStructure.Info updated = SCTStructure.validate(level, worldPosition);
+        ChalkCircle.Info circleUpdated = ChalkCircle.validate(level, worldPosition);
+        boolean circleCompleted = circleUpdated.complete() && !circle.complete();
+        boolean changed = false;
+        if (!updated.equals(structure)) {
+            structure = updated;
+            changed = true;
+        }
+        if (!circleUpdated.equals(circle)) {
+            circle = circleUpdated;
+            changed = true;
+        }
+        if (changed) {
+            setChanged();
+            sync();
+        }
+        if (circleCompleted) {
+            playCircleCompletedEffects(level);
+        }
+        // Готовый круг: мелкие метки прячем, рисунок рисует сам рендерер. Если круг
+        // разорвали — метки снова показываем.
+        syncChalkVisibility(level, circle.complete());
+    }
+
+    /** Показывает/прячет мелкие метки мела в зависимости от целостности круга. */
+    private void syncChalkVisibility(Level level, boolean hide) {
+        for (int[] offset : ChalkCircle.offsets()) {
+            BlockPos pos = worldPosition.offset(offset[0], 0, offset[1]);
+            if (!level.hasChunkAt(pos)) {
+                continue;
+            }
+            BlockState state = level.getBlockState(pos);
+            if (!state.is(com.ptdteam.magicadventurecore.registry.MACBlocks.CHALK_MARK.get())) {
+                continue;
+            }
+            if (state.getValue(com.ptdteam.magicadventurecore.world.block.ChalkMarkBlock.DRAWN) == hide) {
+                continue;
+            }
+            level.setBlock(pos, state.setValue(
+                    com.ptdteam.magicadventurecore.world.block.ChalkMarkBlock.DRAWN, hide), 2);
+        }
+    }
+
+    /** Круг замкнулся: взрыв без урона и отталкивания (партиклы) + звук конца крафта. */
+    private void playCircleCompletedEffects(Level level) {
+        level.playSound(null, worldPosition, SoundEvents.GENERIC_EXPLODE,
+                SoundSource.BLOCKS, 0.7F, 1.2F);
+        level.playSound(null, worldPosition, SoundEvents.BEACON_ACTIVATE,
+                SoundSource.BLOCKS, 1.0F, 1.3F);
+        if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            double x = worldPosition.getX() + 0.5D;
+            double y = worldPosition.getY() + 0.4D;
+            double z = worldPosition.getZ() + 0.5D;
+            serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, x, y, z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+            serverLevel.sendParticles(ParticleTypes.EXPLOSION, x, y, z, 24, 6.0D, 0.4D, 6.0D, 0.0D);
+            serverLevel.sendParticles(ParticleTypes.END_ROD, x, y, z, 60, 5.5D, 0.5D, 5.5D, 0.06D);
+        }
+    }
+
+    /**
+     * Шкала стабильности дошла до нуля: вся структура взрывается. Урон и отталкивание
+     * не наносим — только партиклы и звук; содержимое инвентаря стола выпадает наружу.
+     */
+    private void explodeStructure() {
+        Level level = getLevel();
+        if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
+            resetCraft();
+            return;
+        }
+        BlockPos center = worldPosition;
+        resetCraft();
+        double x = center.getX() + 0.5D;
+        double y = center.getY() + 0.5D;
+        double z = center.getZ() + 0.5D;
+        serverLevel.playSound(null, center, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 1.2F, 0.8F);
+        serverLevel.playSound(null, center, SoundEvents.BEACON_DEACTIVATE, SoundSource.BLOCKS, 1.0F, 0.6F);
+        serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, x, y, z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        serverLevel.sendParticles(ParticleTypes.EXPLOSION, x, y, z, 48, 6.0D, 0.5D, 6.0D, 0.0D);
+        // Кольцо платформы и стабилизаторы.
+        for (int[] offset : SCTStructure.RING_OFFSETS) {
+            serverLevel.removeBlock(center.offset(offset[0], 0, offset[1]), false);
+        }
+        for (int[] offset : STABILIZER_OFFSETS) {
+            serverLevel.removeBlock(center.offset(offset[0], 0, offset[1]), false);
+        }
+        // Метки мела.
+        for (int[] offset : ChalkCircle.offsets()) {
+            serverLevel.removeBlock(center.offset(offset[0], 0, offset[1]), false);
+        }
+        // Контроллер последним: его onRemove выбросит содержимое инвентаря.
+        serverLevel.removeBlock(center, false);
+    }
+
+    /** Тревожные звуки, пока шкала стабильности падает. */
+    private void playInstabilitySound(Level level) {
+        float pitch = 0.6F + 0.6F * (stability / (float) STABILITY_MAX);
+        level.playSound(null, worldPosition, SoundEvents.AMETHYST_BLOCK_RESONATE,
+                SoundSource.BLOCKS, 0.8F, pitch);
+        if (stability < STABILITY_MAX / 3) {
+            level.playSound(null, worldPosition, SoundEvents.WARDEN_HEARTBEAT,
+                    SoundSource.BLOCKS, 0.7F, 1.0F);
+        }
+    }
+
     // ------------------------------------------------------------ мана-буфер
 
     public int getManaBuffer() {
@@ -135,7 +383,8 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         if (amount <= 0) {
             return 0;
         }
-        int accepted = Math.min(amount, MAX_MANA - manaBuffer);
+        int capacity = getManaCapacity();
+        int accepted = Math.min(amount, capacity - manaBuffer);
         if (accepted <= 0) {
             return 0;
         }
@@ -158,7 +407,8 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
      * Botania-капабилити MANA_ITEM) во внутренний буфер. Игрок не нужен.
      */
     private void pullManaFromSlot() {
-        if (manaBuffer >= MAX_MANA) {
+        int capacity = getManaCapacity();
+        if (manaBuffer >= capacity) {
             return;
         }
         ItemStack stack = inventory.getStackInSlot(MANA_SLOT);
@@ -170,13 +420,63 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
             return;
         }
         ManaItem item = manaItem.get();
-        int room = MAX_MANA - manaBuffer;
-        int available = Math.min(item.getMana(), Math.min(room, MANA_PULL_PER_TICK));
+        int room = capacity - manaBuffer;
+        int available = Math.min(item.getMana(), Math.min(room, getManaPullPerTick()));
         if (available <= 0) {
             return;
         }
         item.addMana(-available);
         manaBuffer += available;
+        setChanged();
+    }
+
+    // ------------------------------------------------------------ буфер крови
+
+    public int getBloodBuffer() {
+        return bloodBuffer;
+    }
+
+    public int addBlood(int amount) {
+        if (amount <= 0) {
+            return 0;
+        }
+        int capacity = getBloodCapacity();
+        int accepted = Math.min(amount, capacity - bloodBuffer);
+        if (accepted <= 0) {
+            return 0;
+        }
+        bloodBuffer += accepted;
+        setChanged();
+        return accepted;
+    }
+
+    public int drainBlood(int amount) {
+        int drained = Math.min(Math.max(0, amount), bloodBuffer);
+        if (drained > 0) {
+            bloodBuffer -= drained;
+            setChanged();
+        }
+        return drained;
+    }
+
+    /** Тянет LP из сферы крови в слоте в буфер (только когда платформа собрана). */
+    private void pullBloodFromSlot() {
+        int capacity = getBloodCapacity();
+        if (capacity <= 0 || bloodBuffer >= capacity) {
+            return;
+        }
+        ItemStack orb = inventory.getStackInSlot(BLOOD_SLOT);
+        SoulNetwork network = SCTRecipeLogic.getSoulNetwork(orb);
+        if (network == null) {
+            return;
+        }
+        int room = capacity - bloodBuffer;
+        int available = Math.min(network.getCurrentEssence(), Math.min(room, getBloodPullPerTick()));
+        if (available <= 0) {
+            return;
+        }
+        network.syphon(available);
+        bloodBuffer += available;
         setChanged();
     }
 
@@ -194,7 +494,7 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
 
     @Override
     public boolean isFull() {
-        return manaBuffer >= MAX_MANA;
+        return manaBuffer >= getManaCapacity();
     }
 
     @Override
@@ -238,12 +538,12 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
 
     @Override
     public boolean areIncomingTranfersDone() {
-        return manaBuffer >= MAX_MANA;
+        return isFull();
     }
 
     @Override
     public int getAvailableSpaceForMana() {
-        return Math.max(0, MAX_MANA - manaBuffer);
+        return Math.max(0, getManaCapacity() - manaBuffer);
     }
 
     // ------------------------------------------------------------- анимация
@@ -274,28 +574,33 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         return craftManaCost;
     }
 
-    /** Хватает ли ресурсов на крафт (кровь + мана с учётом буфера). */
+    /** Хватает ли ресурсов на крафт (учитываются буферы, затем сфера/мана-предмет). */
     public boolean hasEnoughResources(SCTHybridRecipe recipe, @Nullable Player player) {
         Level level = getLevel();
-        if (!SCTRecipeLogic.hasEnoughBlood(inventory.getStackInSlot(BLOOD_SLOT), recipe.getBloodCost())) {
+        int bloodRemaining = recipe.getBloodCost() - Math.min(bloodBuffer, recipe.getBloodCost());
+        if (bloodRemaining > 0
+                && !SCTRecipeLogic.hasEnoughBlood(inventory.getStackInSlot(BLOOD_SLOT), bloodRemaining)) {
             return false;
         }
-        int remainingMana = recipe.getManaCost() - manaBuffer;
-        if (remainingMana <= 0) {
+        int manaRemaining = recipe.getManaCost() - manaBuffer;
+        if (manaRemaining <= 0) {
             return true;
         }
         return SCTRecipeLogic.hasEnoughManaItem(
-                inventory.getStackInSlot(MANA_SLOT), player, level, remainingMana);
+                inventory.getStackInSlot(MANA_SLOT), player, level, manaRemaining);
     }
 
-    /** Списывает ингредиенты, кровь и ману (сначала буфер, остаток — из мана-предмета/пула). */
+    /** Списывает ингредиенты, кровь и ману (сначала буферы, остаток — сфера/мана-предмет). */
     private void consumeResources(SCTHybridRecipe recipe, @Nullable Player player) {
         Level level = getLevel();
         SCTRecipeLogic.consumeIngredients(recipe, inventory);
-        SCTRecipeLogic.consumeBlood(inventory.getStackInSlot(BLOOD_SLOT), recipe.getBloodCost());
-        int remaining = recipe.getManaCost() - drainMana(recipe.getManaCost());
-        if (remaining > 0) {
-            SCTRecipeLogic.consumeManaItem(inventory.getStackInSlot(MANA_SLOT), player, level, remaining);
+        int bloodRemaining = recipe.getBloodCost() - drainBlood(recipe.getBloodCost());
+        if (bloodRemaining > 0) {
+            SCTRecipeLogic.consumeBlood(inventory.getStackInSlot(BLOOD_SLOT), bloodRemaining);
+        }
+        int manaRemaining = recipe.getManaCost() - drainMana(recipe.getManaCost());
+        if (manaRemaining > 0) {
+            SCTRecipeLogic.consumeManaItem(inventory.getStackInSlot(MANA_SLOT), player, level, manaRemaining);
         }
     }
 
@@ -315,18 +620,32 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         if (recipe.isEmpty()) {
             return false;
         }
+        refreshStructure(true);
+        if (recipe.get().getStability() > 0 && (!isStructureFormed() || !isCircleComplete())) {
+            return false;
+        }
         if (!hasEnoughResources(recipe.get(), player)) {
             return false;
         }
+        // Стабилизация: списываем заряд стабилизаторов в начале. Если заряда не хватило,
+        // крафт НЕ блокируется — вместо этого падает шкала стабильности (до взрыва).
+        this.stability = STABILITY_MAX;
+        this.destabilized = false;
+        this.craftStabilityCost = recipe.get().getStability();
+        if (this.craftStabilityCost > 0) {
+            int drained = drainStabilizers(this.craftStabilityCost);
+            this.destabilized = drained < this.craftStabilityCost;
+        }
         this.crafting = true;
         this.craftStartGameTime = level.getGameTime();
-        this.craftDuration = recipe.get().getCraftTime() * 3;
+        // Ускорители в кольце сокращают и анимацию, и фазу перекачки ресурсов.
+        float speed = getCraftSpeedMultiplier();
+        this.craftDuration = Math.max(1, Math.round(recipe.get().getCraftTime() * 3 * speed));
         this.craftBloodCost = recipe.get().getBloodCost();
         this.craftManaCost = recipe.get().getManaCost();
-        // Кровь и мана "перекачиваются" со скоростью 320 единиц в секунду: чем дороже
-        // рецепт, тем дольше вступительная фаза (поток партиклов от боковых шкал).
         int resourceAmount = Math.max(craftBloodCost, craftManaCost);
-        this.craftResourceTicks = Math.max(0, resourceAmount / RESOURCE_PER_TICK);
+        int resourcePerTick = Math.max(1, Math.round((float) RESOURCE_PER_TICK / speed));
+        this.craftResourceTicks = Math.max(0, resourceAmount / resourcePerTick);
         this.craftOwner = player.getUUID();
         if (craftDuration <= 0 && craftResourceTicks <= 0) {
             finishCraft();
@@ -346,6 +665,8 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
 
     private void serverTick() {
         pullManaFromSlot();
+        pullBloodFromSlot();
+        refreshStructure(false);
         if (!crafting) {
             return;
         }
@@ -353,6 +674,21 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         if (level == null) {
             resetCraft();
             return;
+        }
+        // Разряд стабилизаторов: шкала стабильности падает 10 секунд и затем структура
+        // взрывается. Пока заряд в норме — шкала всегда полная.
+        if (destabilized) {
+            stability -= STABILITY_DRAIN_PER_TICK;
+            if (stability <= 0) {
+                stability = 0;
+                explodeStructure();
+                return;
+            }
+            if (level.getGameTime() % 10L == 0L) {
+                playInstabilitySound(level);
+            }
+        } else {
+            stability = STABILITY_MAX;
         }
         if (level.getGameTime() - craftStartGameTime >= (long) craftResourceTicks + craftDuration) {
             finishCraft();
@@ -368,9 +704,14 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         ItemStack result = inventory.getStackInSlot(OUTPUT_SLOT).copy();
         Optional<SCTHybridRecipe> recipe = SCTRecipeLogic.findRecipe(level, inventory);
         ServerPlayer owner = resolveOwner();
-        boolean valid = recipe.isPresent()
-                && !result.isEmpty()
-                && hasEnoughResources(recipe.get(), owner);
+        boolean valid = recipe.isPresent() && !result.isEmpty();
+        if (valid && recipe.get().getStability() > 0) {
+            // Ритуал должен оставаться целым до конца анимации.
+            valid = isStructureFormed() && isCircleComplete() && getStabilizerCount() >= 4;
+        }
+        if (valid) {
+            valid = hasEnoughResources(recipe.get(), owner);
+        }
         if (!valid) {
             // Ресурсы могли измениться за время анимации — отменяем без потерь.
             resetCraft();
@@ -419,6 +760,9 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         this.craftBloodCost = 0;
         this.craftManaCost = 0;
         this.craftOwner = null;
+        this.craftStabilityCost = 0;
+        this.destabilized = false;
+        this.stability = STABILITY_MAX;
         setChanged();
     }
 
@@ -436,10 +780,36 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
     }
 
     @Override
+    public void onLoad() {
+        super.onLoad();
+        if (getLevel() != null && !getLevel().isClientSide) {
+            refreshStructure(true);
+        }
+    }
+
+    @Override
+    public AABB getRenderBoundingBox() {
+        // Рисунок круга выходит за пределы одного блока — расширяем область рендера.
+        return new AABB(
+                worldPosition.offset(-7, -2, -7),
+                worldPosition.offset(8, 2, 8)
+        );
+    }
+
+    @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
         tag.put("Inventory", inventory.serializeNBT());
         tag.putInt("ManaBuffer", manaBuffer);
+        tag.putInt("BloodBuffer", bloodBuffer);
+        tag.putInt("CircleMarks", circle.marks());
+        tag.putBoolean("Formed", structure.formed());
+        tag.putInt("Modules", structure.modules());
+        tag.putInt("ManaBonus", structure.manaBonus());
+        tag.putInt("BloodBonus", structure.bloodBonus());
+        tag.putInt("ManaPullBonus", structure.manaPullBonus());
+        tag.putInt("BloodPullBonus", structure.bloodPullBonus());
+        tag.putFloat("Speed", structure.speedMultiplier());
         tag.putBoolean("Crafting", crafting);
         tag.putLong("CraftStart", craftStartGameTime);
         tag.putInt("CraftResource", craftResourceTicks);
@@ -457,7 +827,21 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         if (tag.contains("Inventory")) {
             inventory.deserializeNBT(tag.getCompound("Inventory"));
         }
-        manaBuffer = Math.max(0, Math.min(MAX_MANA, tag.getInt("ManaBuffer")));
+        manaBuffer = Math.max(0, tag.getInt("ManaBuffer"));
+        bloodBuffer = Math.max(0, tag.getInt("BloodBuffer"));
+        circle = new ChalkCircle.Info(
+                Math.max(0, tag.getInt("CircleMarks")),
+                ChalkCircle.REQUIRED_MARKS
+        );
+        structure = new SCTStructure.Info(
+                tag.getBoolean("Formed"),
+                tag.getInt("Modules"),
+                tag.getInt("ManaBonus"),
+                tag.getInt("BloodBonus"),
+                tag.getInt("ManaPullBonus"),
+                tag.getInt("BloodPullBonus"),
+                tag.contains("Speed") ? tag.getFloat("Speed") : 1.0F
+        );
         crafting = tag.getBoolean("Crafting");
         craftStartGameTime = tag.getLong("CraftStart");
         craftResourceTicks = tag.getInt("CraftResource");
