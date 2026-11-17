@@ -1,5 +1,4 @@
-{
-  "parent": "block/block",
+﻿{
   "texture_size": [16, 16],
   "render_type": "minecraft:translucent",
   "textures": {

@@ -15,12 +15,15 @@ public final class MACCreativeModeTabs {
     public static final RegistryObject<CreativeModeTab> MAC_BLOCKS_TAB = CREATIVE_TABS.register(
             "mac_blocks",
             () -> CreativeModeTab.builder()
-                    .title(Component.literal("[PTD] MAC: Blocks"))
+                    .title(Component.literal("[PTD] MagicAdventure Core"))
                     .icon(() -> new ItemStack(MACItems.SCT.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(MACItems.SCT.get());
                         output.accept(MACItems.ESSENCE_RESERVOIR.get());
                         output.accept(MACItems.ARCANE_EXTRACTOR.get());
+                        output.accept(MACItems.HALITE_SHARD.get());
+                        output.accept(MACItems.HALITE_INGOT.get());
+                        output.accept(MACItems.GEM_OF_LIFE.get());
                     })
                     .build()
     );

@@ -1,5 +1,6 @@
 package com.ptdteam.magicadventurecore.world.essence;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Locale;
@@ -29,6 +30,15 @@ public enum EssenceType {
 
     public int getColor() {
         return color;
+    }
+
+    /** Ключ локализации для отображения в тултипах и сообщениях. */
+    public String getTranslationKey() {
+        return "essence.magicadventurecore." + name().toLowerCase(Locale.ROOT);
+    }
+
+    public Component getDisplayName() {
+        return Component.translatable(getTranslationKey());
     }
 
     public static EssenceType fromId(String id) {

@@ -13,7 +13,9 @@ public class MACBlockStateProvider extends BlockStateProvider {
 
     @Override
     protected void registerStatesAndModels() {
-        simpleBlockWithItem(
+        // Только блокстейт: предметные модели генерирует MACItemModelProvider,
+        // иначе один и тот же файл пишется двумя провайдерами.
+        simpleBlock(
                 MACBlocks.SCT.get(),
                 models().cubeBottomTop(
                         MACBlocks.SCT.getId().getPath(),
@@ -22,5 +24,6 @@ public class MACBlockStateProvider extends BlockStateProvider {
                         modLoc("block/sct_crafting_top")
                 )
         );
+        // Ручные модели/блокстейты: essence_reservoir (multipart по level) и arcane_extractor (cube_all).
     }
 }

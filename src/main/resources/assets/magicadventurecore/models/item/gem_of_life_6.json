@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "magicadventurecore:item/gem_of_life/gem_of_life_6"
+  }
+}

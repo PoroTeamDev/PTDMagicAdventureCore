@@ -22,3 +22,34 @@ mandatory=true
 versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
+
+# Integration mods.
+# Botania and Blood Magic are hard dependencies: the code references their classes
+# directly (ManaReceiver/ManaPool/ManaItemHandler, IBloodOrb/SoulNetwork/NetworkHelper),
+# so a missing mod would crash class loading.
+# DivineRPG is referenced only by item namespace and tags, so it is optional:
+# without it the Arcane Extractor simply has no sources.
+# Version ranges are "*" on purpose: these mods use inconsistent version schemes
+# (e.g. DivineRPG "1.10.7.5", Botania "1.20.1-450-FORGE"), and a wrong lower bound
+# would block the game from starting.
+
+[[dependencies.${mod_id}]]
+modId="botania"
+mandatory=true
+versionRange="*"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="bloodmagic"
+mandatory=true
+versionRange="*"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="divinerpg"
+mandatory=false
+versionRange="*"
+ordering="AFTER"
+side="BOTH"

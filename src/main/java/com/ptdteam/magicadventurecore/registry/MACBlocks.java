@@ -23,19 +23,15 @@ public final class MACBlocks {
             "essence_reservoir",
             () -> new ERBlock(BlockBehaviour.Properties.of().strength(3.5F).noOcclusion())
     );
-
     public static final RegistryObject<Block> ARCANE_EXTRACTOR = BLOCKS.register(
             "arcane_extractor",
             () -> new AEBlock(BlockBehaviour.Properties.of().strength(3.5F).noOcclusion())
     );
+
     private MACBlocks() {
     }
 
     public static void register(net.minecraftforge.eventbus.api.IEventBus eventBus) {
         BLOCKS.register(eventBus);
-    }
-
-    public static Block get() {
-        return ARCANE_EXTRACTOR.get();
     }
 }

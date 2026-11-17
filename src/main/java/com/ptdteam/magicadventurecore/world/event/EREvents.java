@@ -2,8 +2,7 @@ package com.ptdteam.magicadventurecore.world.event;
 
 import com.ptdteam.magicadventurecore.MagicAdventureCore;
 import com.ptdteam.magicadventurecore.registry.MACItems;
-import com.ptdteam.magicadventurecore.world.essence.EssenceStorage;
-import com.ptdteam.magicadventurecore.world.essence.EssenceType;
+import com.ptdteam.magicadventurecore.world.item.GemOfLifeItem;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -12,6 +11,11 @@ import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+/**
+ * Эссенция жизни теперь копится в Геме Жизни (а не в резервуаре в инвентаре).
+ * Игрок носит гем с собой, убивает мобов — гем заряжается; затем у резервуара
+ * зажимает ПКМ и переливает заряд в урну (см. {@link GemOfLifeItem}).
+ */
 @Mod.EventBusSubscriber(modid = MagicAdventureCore.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class EREvents {
     private EREvents() {
@@ -34,13 +38,13 @@ public final class EREvents {
             return;
         }
 
+        // Заряжаем первый найденный гем в инвентаре (включая броню/оффхенд).
         for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
             ItemStack stack = player.getInventory().getItem(slot);
-            if (stack.getItem() != MACItems.ESSENCE_RESERVOIR.get()) {
+            if (stack.getItem() != MACItems.GEM_OF_LIFE.get()) {
                 continue;
             }
-            int added = EssenceStorage.addEssence(stack, EssenceType.LIFE, amount, 100000);
-            if (added > 0) {
+            if (GemOfLifeItem.addEssence(stack, amount) > 0) {
                 return;
             }
         }

@@ -1,6 +1,5 @@
 package com.ptdteam.magicadventurecore.world.block;
 
-import com.ptdteam.magicadventurecore.registry.MACItems;
 import com.ptdteam.magicadventurecore.registry.MACBlockEntities;
 import com.ptdteam.magicadventurecore.world.block.entity.AEBlockEntity;
 import net.minecraft.core.BlockPos;
@@ -17,8 +16,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 public class AEBlock extends Block implements EntityBlock {
     public AEBlock(Properties properties) {
@@ -65,17 +62,14 @@ public class AEBlock extends Block implements EntityBlock {
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
-        if (state.getBlock() != newState.getBlock()) {
+        if (!state.is(newState.getBlock()) && !level.isClientSide) {
             if (level.getBlockEntity(pos) instanceof AEBlockEntity extractor) {
+                // Содержимое слота возвращаем в мир; сам блок выпадает из лут-таблицы
+                // (data/magicadventurecore/loot_tables/blocks/arcane_extractor.json).
                 extractor.dropContents();
             }
         }
         super.onRemove(state, level, pos, newState, moved);
-    }
-
-    @Override
-    public List<ItemStack> getDrops(BlockState state, net.minecraft.world.level.storage.loot.LootParams.Builder builder) {
-        return List.of(new ItemStack(MACItems.ARCANE_EXTRACTOR.get()));
     }
 
     @Nullable

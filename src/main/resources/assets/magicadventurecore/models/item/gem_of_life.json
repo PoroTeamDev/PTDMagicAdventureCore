@@ -1,0 +1,50 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "magicadventurecore:item/gem_of_life/gem_of_life_0"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "magicadventurecore:fill": 0.125
+      },
+      "model": "magicadventurecore:item/gem_of_life_1"
+    },
+    {
+      "predicate": {
+        "magicadventurecore:fill": 0.25
+      },
+      "model": "magicadventurecore:item/gem_of_life_2"
+    },
+    {
+      "predicate": {
+        "magicadventurecore:fill": 0.375
+      },
+      "model": "magicadventurecore:item/gem_of_life_3"
+    },
+    {
+      "predicate": {
+        "magicadventurecore:fill": 0.5
+      },
+      "model": "magicadventurecore:item/gem_of_life_4"
+    },
+    {
+      "predicate": {
+        "magicadventurecore:fill": 0.625
+      },
+      "model": "magicadventurecore:item/gem_of_life_5"
+    },
+    {
+      "predicate": {
+        "magicadventurecore:fill": 0.75
+      },
+      "model": "magicadventurecore:item/gem_of_life_6"
+    },
+    {
+      "predicate": {
+        "magicadventurecore:fill": 0.875
+      },
+      "model": "magicadventurecore:item/gem_of_life_7"
+    }
+  ]
+}

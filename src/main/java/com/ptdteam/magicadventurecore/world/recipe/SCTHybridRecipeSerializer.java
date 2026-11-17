@@ -17,11 +17,16 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
     @Override
     public SCTHybridRecipe fromJson(ResourceLocation id, JsonObject json) {
         JsonArray ingredientsJson = GsonHelper.getAsJsonArray(json, "ingredients");
-        if (ingredientsJson.size() != SCTCraftingMenu.INPUT_SLOTS) {
-            throw new IllegalArgumentException("SCT hybrid recipe requires exactly 14 ingredients");
+        if (ingredientsJson.size() > SCTCraftingMenu.INPUT_SLOTS) {
+            throw new IllegalArgumentException("SCT hybrid recipe allows at most "
+                    + SCTCraftingMenu.INPUT_SLOTS + " ingredients, got " + ingredientsJson.size());
         }
-        int bloodCost = GsonHelper.getAsInt(json, "blood_cost", 0);
-        int manaCost = GsonHelper.getAsInt(json, "mana_cost", 0);
+        // Недозаполненная сетка добивается пустыми ингредиентами: датапак может описать
+        // и рецепт из трёх предметов, и полный из четырнадцати.
+        int bloodCost = Math.max(0, GsonHelper.getAsInt(json, "blood_cost", 0));
+        int manaCost = Math.max(0, GsonHelper.getAsInt(json, "mana_cost", 0));
+        int craftTime = Math.max(0, Math.min(SCTHybridRecipe.MAX_CRAFT_TIME,
+                GsonHelper.getAsInt(json, "craft_time", SCTHybridRecipe.DEFAULT_CRAFT_TIME)));
         NonNullList<Ingredient> ingredients = NonNullList.withSize(SCTCraftingMenu.INPUT_SLOTS, Ingredient.EMPTY);
         for (int i = 0; i < ingredientsJson.size(); i++) {
             ingredients.set(i, Ingredient.fromJson(ingredientsJson.get(i)));
@@ -29,7 +34,7 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         Ingredient bloodOrb = json.has("blood_orb") ? Ingredient.fromJson(json.get("blood_orb")) : Ingredient.EMPTY;
         Ingredient manaMirror = json.has("mana_mirror") ? Ingredient.fromJson(json.get("mana_mirror")) : Ingredient.EMPTY;
         ItemStack result = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
-        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost);
+        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost, craftTime);
     }
 
     @Nullable
@@ -38,6 +43,7 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         int size = buffer.readVarInt();
         int bloodCost = buffer.readVarInt();
         int manaCost = buffer.readVarInt();
+        int craftTime = buffer.readVarInt();
         NonNullList<Ingredient> ingredients = NonNullList.withSize(size, Ingredient.EMPTY);
         for (int i = 0; i < size; i++) {
             ingredients.set(i, Ingredient.fromNetwork(buffer));
@@ -45,7 +51,7 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         Ingredient bloodOrb = Ingredient.fromNetwork(buffer);
         Ingredient manaMirror = Ingredient.fromNetwork(buffer);
         ItemStack result = buffer.readItem();
-        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost);
+        return new SCTHybridRecipe(id, ingredients, bloodOrb, manaMirror, result, bloodCost, manaCost, craftTime);
     }
 
     @Override
@@ -53,6 +59,7 @@ public class SCTHybridRecipeSerializer implements RecipeSerializer<SCTHybridReci
         buffer.writeVarInt(recipe.getIngredients().size());
         buffer.writeVarInt(recipe.getBloodCost());
         buffer.writeVarInt(recipe.getManaCost());
+        buffer.writeVarInt(recipe.getCraftTime());
         for (Ingredient ingredient : recipe.getIngredients()) {
             ingredient.toNetwork(buffer);
         }

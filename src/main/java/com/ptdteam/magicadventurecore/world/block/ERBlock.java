@@ -1,8 +1,8 @@
 package com.ptdteam.magicadventurecore.world.block;
 
-import com.ptdteam.magicadventurecore.registry.MACItems;
 import com.ptdteam.magicadventurecore.world.block.entity.ERBlockEntity;
 import com.ptdteam.magicadventurecore.world.essence.EssenceType;
+import com.ptdteam.magicadventurecore.world.item.GemOfLifeItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -27,8 +27,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 public class ERBlock extends Block implements EntityBlock {
     public static final IntegerProperty LEVEL = IntegerProperty.create("level", 0, 4);
@@ -69,19 +67,29 @@ public class ERBlock extends Block implements EntityBlock {
             InteractionHand hand,
             BlockHitResult hit
     ) {
-        if (level.getBlockEntity(pos) instanceof ERBlockEntity blockEntity) {
-            if (!level.isClientSide) {
-                ItemStack held = player.getItemInHand(hand);
-                if (tryFillWithBlood(blockEntity, player, hand, held)) {
-                    return InteractionResult.CONSUME;
-                }
-                String essenceId = blockEntity.getEssenceType().getId();
-                int amount = blockEntity.getEssenceAmount();
-                player.displayClientMessage(Component.literal(essenceId + " = " + amount), false);
-            }
-            return InteractionResult.sidedSuccess(level.isClientSide);
+        if (!(level.getBlockEntity(pos) instanceof ERBlockEntity blockEntity)) {
+            return InteractionResult.PASS;
         }
-        return InteractionResult.PASS;
+        if (level.isClientSide) {
+            return InteractionResult.sidedSuccess(true);
+        }
+        ItemStack held = player.getItemInHand(hand);
+        // Гем Жизни: начинаем «канал» переливания, дальше каждый тик работает
+        // GemOfLifeItem#onUseTick (орбы -> резервуар).
+        if (held.getItem() instanceof GemOfLifeItem && GemOfLifeItem.getEssence(held) > 0) {
+            player.startUsingItem(hand);
+            return InteractionResult.sidedSuccess(false);
+        }
+        if (tryFillWithBlood(blockEntity, player, hand, held)) {
+            return InteractionResult.CONSUME;
+        }
+        player.displayClientMessage(
+                Component.translatable("message.magicadventurecore.reservoir_status",
+                        blockEntity.getEssenceType().getDisplayName(),
+                        blockEntity.getEssenceAmount()),
+                false
+        );
+        return InteractionResult.sidedSuccess(false);
     }
 
     private boolean tryFillWithBlood(
@@ -112,19 +120,16 @@ public class ERBlock extends Block implements EntityBlock {
             }
             handler.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
             ItemStack container = handler.getContainer();
-            player.setItemInHand(hand, container);
+            // Заменяем ровно один предмет из стака: раньше весь стак подменялся одним
+            // контейнером, и лишние вёдра/капсулы пропадали.
+            held.shrink(1);
+            if (held.isEmpty()) {
+                player.setItemInHand(hand, container);
+            } else if (!player.getInventory().add(container)) {
+                player.drop(container, false);
+            }
             return true;
         }).orElse(false);
-    }
-
-    @Override
-    public List<ItemStack> getDrops(BlockState state, net.minecraft.world.level.storage.loot.LootParams.Builder builder) {
-        ItemStack stack = new ItemStack(MACItems.ESSENCE_RESERVOIR.get());
-        BlockEntity blockEntity = builder.getOptionalParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.BLOCK_ENTITY);
-        if (blockEntity instanceof ERBlockEntity reservoir) {
-            reservoir.saveToItem(stack);
-        }
-        return List.of(stack);
     }
 
     @Nullable

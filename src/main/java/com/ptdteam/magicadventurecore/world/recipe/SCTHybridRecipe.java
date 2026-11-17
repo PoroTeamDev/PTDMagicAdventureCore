@@ -15,6 +15,11 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public class SCTHybridRecipe implements Recipe<Container> {
+    /** Длительность «крафтовой» анимации по умолчанию, в тиках (6 секунд). */
+    public static final int DEFAULT_CRAFT_TIME = 120;
+    /** Верхняя граница, чтобы датапак не повесил GUI на минуту. */
+    public static final int MAX_CRAFT_TIME = 1200;
+
     private final ResourceLocation id;
     private final NonNullList<Ingredient> ingredients;
     private final ItemStack result;
@@ -22,6 +27,7 @@ public class SCTHybridRecipe implements Recipe<Container> {
     private final Ingredient manaMirrorIngredient;
     private final int bloodCost;
     private final int manaCost;
+    private final int craftTime;
 
     public SCTHybridRecipe(
             ResourceLocation id,
@@ -30,7 +36,8 @@ public class SCTHybridRecipe implements Recipe<Container> {
             Ingredient manaMirrorIngredient,
             ItemStack result,
             int bloodCost,
-            int manaCost
+            int manaCost,
+            int craftTime
     ) {
         this.id = id;
         this.ingredients = ingredients;
@@ -39,6 +46,12 @@ public class SCTHybridRecipe implements Recipe<Container> {
         this.manaMirrorIngredient = manaMirrorIngredient;
         this.bloodCost = bloodCost;
         this.manaCost = manaCost;
+        this.craftTime = craftTime;
+    }
+
+    /** Сколько тиков играет анимация крафта. 0 — крафт мгновенный. */
+    public int getCraftTime() {
+        return craftTime;
     }
 
     @Override
@@ -70,7 +83,13 @@ public class SCTHybridRecipe implements Recipe<Container> {
                 return false;
             }
         }
-        return remaining.isEmpty();
+        if (!remaining.isEmpty()) {
+            return false;
+        }
+        // Слоты сферы и мана-предмета намеренно не проверяются здесь: их наличие и стоимость
+        // проверяет SCTCraftingMenu#hasEnoughResources. Жёсткая сверка с конкретным предметом
+        // из JSON не давала использовать сферу другого уровня.
+        return true;
     }
 
     @Override
@@ -90,7 +109,7 @@ public class SCTHybridRecipe implements Recipe<Container> {
 
     @Override
     public ItemStack getResultItem(net.minecraft.core.RegistryAccess registryAccess) {
-        return result;
+        return result.copy();
     }
 
     public int getBloodCost() {

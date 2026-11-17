@@ -1,5 +1,6 @@
 package com.ptdteam.magicadventurecore.world.block;
 
+import com.ptdteam.magicadventurecore.registry.MACBlockEntities;
 import com.ptdteam.magicadventurecore.world.block.entity.SCTBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,6 +11,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.network.NetworkHooks;
@@ -49,9 +53,17 @@ public class SCTBlock extends Block implements EntityBlock {
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (!state.is(newState.getBlock())) {
+        if (!state.is(newState.getBlock()) && !level.isClientSide) {
             if (level.getBlockEntity(pos) instanceof SCTBlockEntity blockEntity) {
+                // Анимация крафта не списывает ресурсы до финала, поэтому просто отменяем её:
+                // все ингредиенты остаются в слотах и выпадают ниже.
+                blockEntity.cancelCraft();
                 for (int slot = 0; slot < SCTBlockEntity.TOTAL_SLOTS; slot++) {
+                    // Слот результата не дропаем: он пересчитывается из ингредиентов и иначе
+                    // выдал бы бесплатную копию результата при ломании стола.
+                    if (slot == SCTBlockEntity.OUTPUT_SLOT) {
+                        continue;
+                    }
                     var stack = blockEntity.getInventory().getStackInSlot(slot);
                     if (!stack.isEmpty()) {
                         popResource(level, pos, stack);
@@ -66,5 +78,17 @@ public class SCTBlock extends Block implements EntityBlock {
     @Override
     public SCTBlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new SCTBlockEntity(pos, state);
+    }
+
+    @Nullable
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        if (level.isClientSide) {
+            return null;
+        }
+        return type == MACBlockEntities.SCT_BLOCK_ENTITY.get()
+                ? (tickerLevel, tickerPos, tickerState, blockEntity) ->
+                SCTBlockEntity.tick(tickerLevel, tickerPos, tickerState, (SCTBlockEntity) blockEntity)
+                : null;
     }
 }

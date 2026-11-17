@@ -32,14 +32,16 @@ public class MACRecipeProvider extends RecipeProvider {
                 Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE), Ingredient.of(Items.STONE),
                 Ingredient.of(Items.STONE), Ingredient.of(Items.STONE)
         );
+        // Должно совпадать с ручным src/main/resources/data/.../recipes/sct_test.json,
+        // иначе прогон runData выдаёт другой рецепт с тем же id.
         SCTRecipeBuilder recipe = new SCTRecipeBuilder(
                 ResourceLocation.fromNamespaceAndPath(MagicAdventureCore.MOD_ID, "sct_test"),
                 ingredients,
                 Optional.of(bloodOrb),
                 Optional.of(manaMirror),
                 new ItemStack(Items.DIAMOND),
-                5000,
-                25000
+                1000,
+                1000
         );
         consumer.accept(recipe);
     }

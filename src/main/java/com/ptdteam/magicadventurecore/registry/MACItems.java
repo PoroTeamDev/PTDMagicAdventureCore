@@ -26,6 +26,28 @@ public final class MACItems {
             "arcane_extractor",
             () -> new BlockItem(MACBlocks.ARCANE_EXTRACTOR.get(), new Item.Properties())
     );
+
+    /** Осколок халита: падает с боссов DivineRPG вместо халитовой экипировки. */
+    public static final RegistryObject<Item> HALITE_SHARD = ITEMS.register(
+            "halite_shard",
+            () -> new Item(new Item.Properties())
+    );
+
+    /** Халитовый слиток: выплавляется из осколков на столе SCT. */
+    public static final RegistryObject<Item> HALITE_INGOT = ITEMS.register(
+            "halite_ingot",
+            () -> new Item(new Item.Properties())
+    );
+
+    /**
+     * Гем Жизни: копит эссенцию жизни от убийств (до 16 000) и переливает её
+     * в резервуар при удержании ПКМ рядом с урной.
+     */
+    public static final RegistryObject<Item> GEM_OF_LIFE = ITEMS.register(
+            "gem_of_life",
+            () -> new com.ptdteam.magicadventurecore.world.item.GemOfLifeItem(new Item.Properties())
+    );
+
     private MACItems() {
     }
 

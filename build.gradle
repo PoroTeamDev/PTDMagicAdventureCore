@@ -2,7 +2,8 @@ plugins {
     id "idea"
     id "maven-publish"
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
-    id 'com.diffplug.spotless' version '7.0.2'
+    // Нужен не для миксинов мода, а для dev-окружения: плагин включает remap refmap'ов
+    // зависимостей (Architectury/KubeJS), иначе runClient падает на их миксинах.
     id 'org.spongepowered.mixin' version '0.7+'
 }
 
@@ -34,6 +35,12 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
 
             property 'forge.logging.console.level', 'debug'
+
+            // В dev-окружении маппинги official, а refmap'ы сторонних мод-миксинов
+            // (Architectury, KubeJS, ...) содержат SRG-имена. Без этих двух свойств
+            // Mixin не может их перевести и падает с InvalidInjectionException.
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
 
             mods {
                 "${mod_id}" {
@@ -132,7 +139,9 @@ dependencies {
 
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
+    // JEI: API для компиляции плагина, сам мод — только в dev-рантайме.
+    // forge-api не подключаем: это пустой артефакт (3 КБ), а его деобф-кэш ломает
+    // резолв зависимостей на чистой машине.
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
     //runtimeOnly fg.deobf("dev.emi:emi-forge:${emi_version}+${minecraft_version}")
@@ -147,6 +156,13 @@ dependencies {
     runtimeOnly fg.deobf("curse.maven:patchouli-306770:6164575")
     runtimeOnly fg.deobf("curse.maven:curios-309927:6418456")
     runtimeOnly fg.deobf("curse.maven:lionfish-api-1001614:5922047")
+    // Twilight Forest 1.20.1-4.3.2508 (Forge+NeoForge).
+    runtimeOnly fg.deobf("curse.maven:twilightforest-227639:5468648")
+    // The Aether 1.20.1-1.5.2: через CurseMaven файл не отдаётся (мод закрыл сторонние
+    // загрузки), поэтому берём тот же билд с Modrinth (version id 2411kUqF).
+    // Собран под NeoForge, но помечен как совместимый с Forge 47; если на Forge не
+    // загрузится — откатиться на 1.20.1-1.4.2 (Modrinth version id 1iMxKMqa) или убрать.
+    runtimeOnly fg.deobf("maven.modrinth:aether:2411kUqF")
 
 
     if (githubPackagesUser && githubPackagesToken) {
@@ -158,12 +174,10 @@ dependencies {
     compileOnly fg.deobf("curse.maven:evilcraft-74610:7223463")
     compileOnly fg.deobf("maven.modrinth:l_enders-cataclysm:NvvXful4")
 
-    implementation fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}")
-    implementation fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}")
-    //implementation fg.deobf("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
-    implementation fg.deobf("com.tterrag.registrate:Registrate:${registrate_version}")
 
-
+    // KubeJS нужен только для dev-рецептов из run/kubejs, в коде мода его API не используется.
+    runtimeOnly fg.deobf("dev.latvian.mods:kubejs-forge:${kubejs_version}")
+    runtimeOnly fg.deobf("dev.latvian.mods:rhino-forge:${rhino_version}")
 }
 
 

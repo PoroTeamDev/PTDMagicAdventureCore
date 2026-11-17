@@ -1,0 +1,42 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "magicadventurecore:essence_reservoir",
+          "functions": [
+            {
+              "function": "minecraft:copy_nbt",
+              "source": {
+                "type": "minecraft:context",
+                "target": "block_entity"
+              },
+              "ops": [
+                {
+                  "source": "EssenceType",
+                  "target": "EssenceType",
+                  "op": "replace"
+                },
+                {
+                  "source": "EssenceAmount",
+                  "target": "EssenceAmount",
+                  "op": "replace"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "magicadventurecore:blocks/essence_reservoir"
+}
