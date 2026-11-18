@@ -1,6 +1,7 @@
 package com.ptdteam.magicadventurecore.world.item;
 
 import com.ptdteam.magicadventurecore.registry.MACBlocks;
+import com.ptdteam.magicadventurecore.world.ritual.RitualRules;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -50,6 +51,11 @@ public class ArcaneChalkItem extends Item {
         BlockPos markPos = clicked.above();
         BlockState current = level.getBlockState(markPos);
         if (current.is(MACBlocks.CHALK_MARK.get())) {
+            return InteractionResult.FAIL;
+        }
+        // На бедрок/обсидиан/неразрушимые блоки мел не ложится — рисунок должен
+        // участвовать в ритуале и разрушаться взрывом.
+        if (RitualRules.isExplosionProof(clickedState)) {
             return InteractionResult.FAIL;
         }
         if (!current.canBeReplaced()) {

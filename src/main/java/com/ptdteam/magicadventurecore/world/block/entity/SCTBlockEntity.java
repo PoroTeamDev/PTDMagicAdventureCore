@@ -6,17 +6,23 @@ import com.ptdteam.magicadventurecore.world.multiblock.SCTStructure;
 import com.ptdteam.magicadventurecore.world.recipe.SCTHybridRecipe;
 import com.ptdteam.magicadventurecore.world.recipe.SCTRecipeLogic;
 import com.ptdteam.magicadventurecore.world.ritual.ChalkCircle;
+import com.ptdteam.magicadventurecore.world.ritual.RitualRules;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -32,6 +38,7 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.items.wrapper.RangedWrapper;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 import vazkii.botania.api.BotaniaForgeCapabilities;
 import vazkii.botania.api.mana.ManaItem;
 import vazkii.botania.api.mana.ManaReceiver;
@@ -40,6 +47,7 @@ import vazkii.botania.api.mana.spark.SparkAttachable;
 import vazkii.botania.common.entity.ManaSparkEntity;
 import wayoftime.bloodmagic.core.data.SoulNetwork;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -129,6 +137,9 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
     private int craftStabilityCost;
     /** true — стабилизаторов не хватило, шкала стабильности падает (ведёт к взрыву). */
     private boolean destabilized;
+    /** Очередь блоков структуры, которые сейчас разрушаются молниями (постепенный взрыв). */
+    private final List<BlockPos> destructionQueue = new ArrayList<>();
+    private int destructionTimer;
 
     /** Идёт ли сейчас анимация крафта (слоты заблокированы, ингредиенты ещё не списаны). */
     private boolean crafting;
@@ -328,37 +339,202 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
     }
 
     /**
-     * Шкала стабильности дошла до нуля: вся структура взрывается. Урон и отталкивание
-     * не наносим — только партиклы и звук; содержимое инвентаря стола выпадает наружу.
+     * Шкала стабильности дошла до нуля: структура разрушается постепенно. Молнии бьют
+     * по частям структуры и выбивают «рваные» воронки до 2–3 блоков вглубь, пока не
+     * разрушат всю область. Урон и отталкивание игроку не наносятся.
      */
-    private void explodeStructure() {
+    private void beginStructureDestruction() {
+        resetCraft();
+        destructionQueue.clear();
         Level level = getLevel();
         if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
-            resetCraft();
             return;
         }
-        BlockPos center = worldPosition;
-        resetCraft();
-        double x = center.getX() + 0.5D;
-        double y = center.getY() + 0.5D;
-        double z = center.getZ() + 0.5D;
-        serverLevel.playSound(null, center, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 1.2F, 0.8F);
-        serverLevel.playSound(null, center, SoundEvents.BEACON_DEACTIVATE, SoundSource.BLOCKS, 1.0F, 0.6F);
-        serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, x, y, z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        serverLevel.sendParticles(ParticleTypes.EXPLOSION, x, y, z, 48, 6.0D, 0.5D, 6.0D, 0.0D);
-        // Кольцо платформы и стабилизаторы.
         for (int[] offset : SCTStructure.RING_OFFSETS) {
-            serverLevel.removeBlock(center.offset(offset[0], 0, offset[1]), false);
+            addDestructionTarget(worldPosition.offset(offset[0], 0, offset[1]));
         }
         for (int[] offset : STABILIZER_OFFSETS) {
-            serverLevel.removeBlock(center.offset(offset[0], 0, offset[1]), false);
+            addDestructionTarget(worldPosition.offset(offset[0], 0, offset[1]));
         }
-        // Метки мела.
         for (int[] offset : ChalkCircle.offsets()) {
-            serverLevel.removeBlock(center.offset(offset[0], 0, offset[1]), false);
+            addDestructionTarget(worldPosition.offset(offset[0], 0, offset[1]));
         }
-        // Контроллер последним: его onRemove выбросит содержимое инвентаря.
-        serverLevel.removeBlock(center, false);
+        // Контроллер — последним.
+        destructionQueue.add(worldPosition);
+        destructionTimer = 0;
+        serverLevel.playSound(null, worldPosition, SoundEvents.LIGHTNING_BOLT_THUNDER,
+                SoundSource.WEATHER, 1.0F, 0.6F);
+        serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
+                worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D, worldPosition.getZ() + 0.5D,
+                1, 0.0D, 0.0D, 0.0D, 0.0D);
+        setChanged();
+        sync();
+    }
+
+    private void addDestructionTarget(BlockPos pos) {
+        Level level = getLevel();
+        if (level == null || level.getBlockState(pos).isAir()) {
+            return;
+        }
+        destructionQueue.add(pos);
+    }
+
+    /** Один удар молнии раз в 10 тиков, с рваной воронкой до 2–3 блоков вглубь. */
+    private void tickDestruction() {
+        Level level = getLevel();
+        if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
+            destructionQueue.clear();
+            return;
+        }
+        if (++destructionTimer % 10 != 0) {
+            return;
+        }
+        BlockPos controller = worldPosition;
+        if (destructionQueue.size() > 1) {
+            int index = serverLevel.random.nextInt(destructionQueue.size() - 1);
+            BlockPos target = destructionQueue.remove(index);
+            if (level.getBlockState(target).isAir()) {
+                return;
+            }
+            strikeVisualLightning(serverLevel,
+                    target.getX() + 0.5D, target.getY() + 0.05D, target.getZ() + 0.5D);
+            serverLevel.playSound(null, target, SoundEvents.LIGHTNING_BOLT_IMPACT,
+                    SoundSource.WEATHER, 0.9F, 0.8F + serverLevel.random.nextFloat() * 0.4F);
+            serverLevel.sendParticles(ParticleTypes.EXPLOSION,
+                    target.getX() + 0.5D, target.getY() + 0.5D, target.getZ() + 0.5D,
+                    6, 1.2D, 0.6D, 1.2D, 0.0D);
+            destroyCrater(serverLevel, target);
+            // Убираем из очереди то, что уже разбито воронкой.
+            destructionQueue.removeIf(pos -> !pos.equals(controller)
+                    && serverLevel.getBlockState(pos).isAir());
+            setChanged();
+            return;
+        }
+        // Финал: последний удар по контроллеру.
+        strikeVisualLightning(serverLevel,
+                controller.getX() + 0.5D, controller.getY() + 0.05D, controller.getZ() + 0.5D);
+        serverLevel.playSound(null, controller, SoundEvents.GENERIC_EXPLODE,
+                SoundSource.BLOCKS, 1.2F, 0.7F);
+        serverLevel.playSound(null, controller, SoundEvents.LIGHTNING_BOLT_THUNDER,
+                SoundSource.WEATHER, 1.0F, 0.6F);
+        serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
+                controller.getX() + 0.5D, controller.getY() + 0.5D, controller.getZ() + 0.5D,
+                1, 0.0D, 0.0D, 0.0D, 0.0D);
+        destructionQueue.clear();
+        serverLevel.removeBlock(controller, false);
+    }
+
+    /** Рваная воронка как от крипера, но не глубже 3 блоков. */
+    private void destroyCrater(net.minecraft.server.level.ServerLevel level, BlockPos impact) {
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                for (int dy = 0; dy >= -2; dy--) {
+                    if (dx != 0 && dz != 0 && level.random.nextFloat() < 0.45F) {
+                        continue;
+                    }
+                    cursor.set(impact.getX() + dx, impact.getY() + dy, impact.getZ() + dz);
+                    BlockState state = level.getBlockState(cursor);
+                    if (state.isAir() || RitualRules.isExplosionProof(state)) {
+                        continue;
+                    }
+                    level.removeBlock(cursor, false);
+                }
+            }
+        }
+    }
+
+    /** Молния без урона, огня и отталкивания. */
+    private static void strikeVisualLightning(ServerLevel level, double x, double y, double z) {
+        LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
+        if (bolt == null) {
+            return;
+        }
+        bolt.moveTo(x, y, z);
+        bolt.setVisualOnly(true);
+        level.addFreshEntity(bolt);
+    }
+
+    /** Эффекты крафта: пылинки от кристаллов к столу и случайные молнии по площадке. */
+    private void spawnCraftEffects(Level level) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        long time = level.getGameTime();
+        if (time % 2L == 0L) {
+            spawnStabilizerStream(serverLevel, time);
+        }
+        if (time % 40L == 0L) {
+            double angle = (time % 360L) * 0.1D;
+            strikeVisualLightning(serverLevel,
+                    worldPosition.getX() + 0.5D + Math.cos(angle) * 4.0D,
+                    worldPosition.getY() + 0.05D,
+                    worldPosition.getZ() + 0.5D + Math.sin(angle) * 4.0D);
+        }
+    }
+
+    /** Пылинки, которые засасывает от кристаллов стабилизаторов к SCT, пока идёт крафт. */
+    private void spawnStabilizerStream(ServerLevel level, long time) {
+        double cx = worldPosition.getX() + 0.5D;
+        double cy = worldPosition.getY() + 0.7D;
+        double cz = worldPosition.getZ() + 0.5D;
+        for (int i = 0; i < STABILIZER_OFFSETS.length; i++) {
+            BlockPos stabilizerPos = worldPosition.offset(
+                    STABILIZER_OFFSETS[i][0], 0, STABILIZER_OFFSETS[i][1]);
+            if (!(level.getBlockEntity(stabilizerPos) instanceof MageStabilizerBlockEntity)) {
+                continue;
+            }
+            double sx = stabilizerPos.getX() + 0.5D;
+            double sy = stabilizerPos.getY() + 0.85D;
+            double sz = stabilizerPos.getZ() + 0.5D;
+            for (int step = 0; step < 3; step++) {
+                double t = ((time % 12) / 12.0D + step / 3.0D + i * 0.11D) % 1.0D;
+                double x = Mth.lerp(t, sx, cx);
+                double z = Mth.lerp(t, sz, cz);
+                double y = Mth.lerp(t, sy, cy) + Math.sin(t * Math.PI) * 0.6D;
+                level.sendParticles(new DustParticleOptions(
+                                new Vector3f(0.66F, 0.52F, 1.0F), 0.9F),
+                        x, y, z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+            }
+        }
+    }
+
+    /** Старт ритуала: вспышки на кристаллах стабилизаторов. */
+    private void playCraftStartEffects(Level level) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        for (int[] offset : STABILIZER_OFFSETS) {
+            BlockPos pos = worldPosition.offset(offset[0], 0, offset[1]);
+            if (!(level.getBlockEntity(pos) instanceof MageStabilizerBlockEntity)) {
+                continue;
+            }
+            serverLevel.sendParticles(ParticleTypes.END_ROD,
+                    pos.getX() + 0.5D, pos.getY() + 0.85D, pos.getZ() + 0.5D,
+                    24, 0.25D, 0.45D, 0.25D, 0.06D);
+            serverLevel.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME,
+                    SoundSource.BLOCKS, 0.8F, 1.4F);
+        }
+        serverLevel.playSound(null, worldPosition, SoundEvents.AMETHYST_BLOCK_RESONATE,
+                SoundSource.BLOCKS, 1.0F, 0.8F);
+    }
+
+    /** Финал крафта: множество молний бьёт в SCT. */
+    private void strikeCompletionLightning(Level level) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        for (int i = 0; i < 8; i++) {
+            double angle = i * Math.PI / 4.0D;
+            double radius = 0.8D + (i % 3) * 0.7D;
+            strikeVisualLightning(serverLevel,
+                    worldPosition.getX() + 0.5D + Math.cos(angle) * radius,
+                    worldPosition.getY() + 0.05D,
+                    worldPosition.getZ() + 0.5D + Math.sin(angle) * radius);
+        }
+        serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
+                worldPosition.getX() + 0.5D, worldPosition.getY() + 0.6D, worldPosition.getZ() + 0.5D,
+                1, 0.0D, 0.0D, 0.0D, 0.0D);
     }
 
     /** Тревожные звуки, пока шкала стабильности падает. */
@@ -647,6 +823,7 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         int resourcePerTick = Math.max(1, Math.round((float) RESOURCE_PER_TICK / speed));
         this.craftResourceTicks = Math.max(0, resourceAmount / resourcePerTick);
         this.craftOwner = player.getUUID();
+        playCraftStartEffects(level);
         if (craftDuration <= 0 && craftResourceTicks <= 0) {
             finishCraft();
             return true;
@@ -664,6 +841,11 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
     }
 
     private void serverTick() {
+        // Постепенное разрушение структуры (после нуля стабильности) имеет приоритет.
+        if (!destructionQueue.isEmpty()) {
+            tickDestruction();
+            return;
+        }
         pullManaFromSlot();
         pullBloodFromSlot();
         refreshStructure(false);
@@ -675,13 +857,15 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
             resetCraft();
             return;
         }
+        // Пока идёт крафт: пылинки от стабилизаторов к столу + случайные молнии.
+        spawnCraftEffects(level);
         // Разряд стабилизаторов: шкала стабильности падает 10 секунд и затем структура
-        // взрывается. Пока заряд в норме — шкала всегда полная.
+        // начинает постепенно разрушаться. Пока заряд в норме — шкала всегда полная.
         if (destabilized) {
             stability -= STABILITY_DRAIN_PER_TICK;
             if (stability <= 0) {
                 stability = 0;
-                explodeStructure();
+                beginStructureDestruction();
                 return;
             }
             if (level.getGameTime() % 10L == 0L) {
@@ -728,6 +912,8 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         SCTRecipeLogic.refreshOutput(level, inventory);
         SCTRecipeLogic.deliver(result, owner, level, worldPosition);
         level.playSound(null, worldPosition, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 0.9F, 1.2F);
+        // Финал ритуала: множество молний бьёт в SCT.
+        strikeCompletionLightning(level);
         setChanged();
         sync();
     }
@@ -819,6 +1005,13 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         if (craftOwner != null) {
             tag.putString("CraftOwner", craftOwner.toString());
         }
+        if (!destructionQueue.isEmpty()) {
+            long[] positions = new long[destructionQueue.size()];
+            for (int i = 0; i < positions.length; i++) {
+                positions[i] = destructionQueue.get(i).asLong();
+            }
+            tag.putLongArray("Destruction", positions);
+        }
     }
 
     @Override
@@ -849,6 +1042,10 @@ public class SCTBlockEntity extends BlockEntity implements MenuProvider, ManaRec
         craftBloodCost = tag.getInt("CraftBloodCost");
         craftManaCost = tag.getInt("CraftManaCost");
         craftOwner = tag.contains("CraftOwner") ? parseUuid(tag.getString("CraftOwner")) : null;
+        destructionQueue.clear();
+        for (long packed : tag.getLongArray("Destruction")) {
+            destructionQueue.add(BlockPos.of(packed));
+        }
         if (crafting && craftDuration <= 0 && craftResourceTicks <= 0) {
             crafting = false;
         }

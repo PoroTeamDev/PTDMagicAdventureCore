@@ -63,5 +63,11 @@ public class MACLangProvider extends LanguageProvider {
         add("message.magicadventurecore.not_enough_stabilizers", "Place 4 mage stabilizers around the circle");
         add("gui.magicadventurecore.stability", "Stability: %s%%");
         add("gui.magicadventurecore.status.stabilizers", "Stabilizers: %s / 4 (charge %s / %s)");
+        add("gui.magicadventurecore.jei.ritual_title", "SCT Ritual");
+        add("gui.magicadventurecore.jei.ritual.circle", "Chalk circle: %s cells");
+        add("gui.magicadventurecore.jei.ritual.ring", "Ring: 8 blocks (frames or modules)");
+        add("gui.magicadventurecore.jei.ritual.stabilizers", "Stabilizers: 4, sides +-6 blocks");
+        add("gui.magicadventurecore.jei.ritual.charge", "Charge is spent; empty -> explosion");
+        add("gui.magicadventurecore.jei.stability_required", "Stability: %s (requires ritual)");
     }
 }

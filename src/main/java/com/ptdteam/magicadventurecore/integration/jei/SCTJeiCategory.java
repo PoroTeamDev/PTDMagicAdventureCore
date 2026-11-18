@@ -27,7 +27,7 @@ public class SCTJeiCategory implements IRecipeCategory<SCTHybridRecipe> {
             RecipeType.create(MagicAdventureCore.MOD_ID, "sct_hybrid_crafting", SCTHybridRecipe.class);
 
     private static final int WIDTH = 190;
-    private static final int HEIGHT = 178;
+    private static final int HEIGHT = 190;
     /** Сдвиг сетки влево, чтобы справа поместились стрелка и слот результата. */
     private static final int INPUT_SHIFT_X = -26;
     private static final int OUTPUT_SLOT_X = 158;
@@ -37,6 +37,7 @@ public class SCTJeiCategory implements IRecipeCategory<SCTHybridRecipe> {
     private static final int LABEL_X = 6;
     private static final int MANA_LABEL_Y = 150;
     private static final int BLOOD_LABEL_Y = 162;
+    private static final int STABILITY_LABEL_Y = 176;
 
     private final IDrawable background;
     private final IDrawable icon;
@@ -107,6 +108,11 @@ public class SCTJeiCategory implements IRecipeCategory<SCTHybridRecipe> {
             graphics.drawString(minecraft.font, Component.translatable(
                     "gui.magicadventurecore.jei.blood_required", recipe.getBloodCost()),
                     LABEL_X, BLOOD_LABEL_Y, 0x3F3F3F, false);
+        }
+        if (recipe.getStability() > 0) {
+            graphics.drawString(minecraft.font, Component.translatable(
+                    "gui.magicadventurecore.jei.stability_required", recipe.getStability()),
+                    LABEL_X, STABILITY_LABEL_Y, 0x3F3F3F, false);
         }
     }
 

@@ -40,5 +40,11 @@
   "message.magicadventurecore.circle_incomplete": "The chalk circle is incomplete: %s / %s",
   "message.magicadventurecore.not_enough_stabilizers": "Place 4 mage stabilizers around the circle",
   "gui.magicadventurecore.stability": "Stability: %s%%",
-  "gui.magicadventurecore.status.stabilizers": "Stabilizers: %s / 4 (charge %s / %s)"
+  "gui.magicadventurecore.status.stabilizers": "Stabilizers: %s / 4 (charge %s / %s)",
+  "gui.magicadventurecore.jei.ritual_title": "SCT Ritual",
+  "gui.magicadventurecore.jei.ritual.circle": "Chalk circle: %s cells",
+  "gui.magicadventurecore.jei.ritual.ring": "Ring: 8 blocks (frames or modules)",
+  "gui.magicadventurecore.jei.ritual.stabilizers": "Stabilizers: 4, sides +-6 blocks",
+  "gui.magicadventurecore.jei.ritual.charge": "Charge is spent; empty -> explosion",
+  "gui.magicadventurecore.jei.stability_required": "Stability: %s (requires ritual)"
 }
